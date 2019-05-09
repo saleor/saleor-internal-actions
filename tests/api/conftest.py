@@ -5,9 +5,11 @@ import graphene
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import connection
 from django.shortcuts import reverse
-from django.test.client import MULTIPART_CONTENT, Client
+from django.test.client import MULTIPART_CONTENT
 from graphql_jwt.shortcuts import get_token
+from tenants.test.client import TenantClient
 
 from saleor.account.models import User
 from saleor.app.models import App
@@ -19,10 +21,11 @@ from .utils import assert_no_permission
 API_PATH = reverse("api")
 
 
-class ApiClient(Client):
+class TenantApiClient(TenantClient):
     """GraphQL API client."""
 
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         user = kwargs.pop("user", AnonymousUser())
         app = kwargs.pop("app", None)
         self._user = None
@@ -30,12 +33,9 @@ class ApiClient(Client):
         self.user = user
         self.app_token = None
         self.app = app
-        if not user.is_anonymous:
-            self.token = get_token(user)
-        elif app:
+        if app:
             token = app.tokens.first()
             self.app_token = token.auth_token if token else None
-        super().__init__(*args, **kwargs)
 
     def _base_environ(self, **request):
         environ = super()._base_environ(**request)
@@ -53,7 +53,7 @@ class ApiClient(Client):
     def user(self, user):
         self._user = user
         if not user.is_anonymous:
-            self.token = get_token(user)
+            self.token = get_token(user, context=self)
 
     def post(self, data=None, **kwargs):
         """Send a POST request.
@@ -115,28 +115,33 @@ class ApiClient(Client):
 
 
 @pytest.fixture
-def app_api_client(app):
-    return ApiClient(app=app)
+def app_api_client(test_tenant, app):
+    return TenantApiClient(test_tenant, app=app)
 
 
 @pytest.fixture
-def staff_api_client(staff_user):
-    return ApiClient(user=staff_user)
+def staff_api_client(test_tenant, staff_user):
+    return TenantApiClient(test_tenant, user=staff_user)
 
 
 @pytest.fixture
-def superuser_api_client(superuser):
-    return ApiClient(user=superuser)
+def superuser_api_client(test_tenant, superuser):
+    return TenantApiClient(test_tenant, user=superuser)
 
 
 @pytest.fixture
-def user_api_client(customer_user):
-    return ApiClient(user=customer_user)
+def user_api_client(test_tenant, customer_user):
+    return TenantApiClient(test_tenant, user=customer_user)
 
 
 @pytest.fixture
-def api_client():
-    return ApiClient(user=AnonymousUser())
+def api_client(test_tenant):
+    return TenantApiClient(test_tenant, user=AnonymousUser())
+
+
+@pytest.fixture
+def other_tenant_api_client(other_tenant):
+    return TenantApiClient(other_tenant, user=AnonymousUser)
 
 
 @pytest.fixture

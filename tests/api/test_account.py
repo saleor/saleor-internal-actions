@@ -4,7 +4,6 @@ from collections import defaultdict
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import graphene
-import jwt
 import pytest
 from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
@@ -34,11 +33,18 @@ from saleor.order.models import FulfillmentStatus, Order
 from tests.api.utils import get_graphql_content
 from tests.utils import create_image
 
+from tenants.jwt import jwt_decode
+
 from .utils import (
     assert_no_permission,
     convert_dict_keys_to_camel_case,
     get_multipart_request_body,
 )
+
+
+@pytest.fixture
+def media_url(test_tenant):
+    return "http://{domain}/media/{domain}".format(domain=test_tenant.domain_url)
 
 
 @pytest.fixture
@@ -97,7 +103,7 @@ def test_create_token_mutation(api_client, staff_user, settings):
         response = api_client.post_graphql(query, variables)
     content = get_graphql_content(response)
     token_data = content["data"]["tokenCreate"]
-    token = jwt.decode(token_data["token"], settings.SECRET_KEY)
+    token = jwt_decode(token_data["token"])
     staff_user.refresh_from_db()
     assert staff_user.last_login == time
     assert token["email"] == staff_user.email
@@ -1916,7 +1922,7 @@ def test_staff_update_groups_and_permissions(
     data = content["data"]["staffUpdate"]
     assert data["staffErrors"] == []
     assert {perm["code"].lower() for perm in data["user"]["userPermissions"]} == {
-        permission_manage_orders.codename,
+        permission_manage_orders.codename
     }
     assert {group["name"] for group in data["user"]["permissionGroups"]} == {
         group2.name,
@@ -1924,7 +1930,7 @@ def test_staff_update_groups_and_permissions(
     }
     # deprecated, to remove in #5389
     assert {perm["code"].lower() for perm in data["user"]["permissions"]} == {
-        permission_manage_orders.codename,
+        permission_manage_orders.codename
     }
 
 
@@ -2099,7 +2105,7 @@ def test_staff_update_duplicated_input_items(
 
 
 def test_staff_update_doesnt_change_existing_avatar(
-    staff_api_client, permission_manage_staff, media_root, staff_users,
+    staff_api_client, permission_manage_staff, media_root, staff_users
 ):
     query = STAFF_UPDATE_MUTATIONS
 
@@ -3405,7 +3411,9 @@ def test_user_avatar_update_mutation_permission(api_client):
     assert_no_permission(response)
 
 
-def test_user_avatar_update_mutation(monkeypatch, staff_api_client, media_root):
+def test_user_avatar_update_mutation(
+    monkeypatch, staff_api_client, media_root, media_url
+):
     query = USER_AVATAR_UPDATE_MUTATION
 
     user = staff_api_client.user
@@ -3429,15 +3437,15 @@ def test_user_avatar_update_mutation(monkeypatch, staff_api_client, media_root):
     user.refresh_from_db()
 
     assert user.avatar
-    assert data["user"]["avatar"]["url"].startswith(
-        "http://testserver/media/user-avatars/avatar"
-    )
+    assert data["user"]["avatar"]["url"].startswith(media_url + "/user-avatars/avatar")
 
     # The image creation should have triggered a warm-up
     mock_create_thumbnails.assert_called_once_with(user_id=user.pk)
 
 
-def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
+def test_user_avatar_update_mutation_image_exists(
+    staff_api_client, media_root, media_url
+):
     query = USER_AVATAR_UPDATE_MUTATION
 
     user = staff_api_client.user
@@ -3457,7 +3465,7 @@ def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
 
     assert user.avatar != avatar_mock
     assert data["user"]["avatar"]["url"].startswith(
-        "http://testserver/media/user-avatars/new_image"
+        media_url + "/user-avatars/new_image"
     )
 
 
@@ -3665,7 +3673,7 @@ QUERY_CUSTOMERS_WITH_SORT = """
     ],
 )
 def test_query_customers_with_sort(
-    customer_sort, result_order, staff_api_client, permission_manage_users,
+    customer_sort, result_order, staff_api_client, permission_manage_users
 ):
     User.objects.bulk_create(
         [
@@ -3782,7 +3790,7 @@ def test_query_staff_members_with_filter_status(
 
 
 def test_query_staff_members_app_no_permission(
-    query_staff_users_with_filter, app_api_client, permission_manage_staff,
+    query_staff_users_with_filter, app_api_client, permission_manage_staff
 ):
 
     User.objects.bulk_create(
@@ -4058,7 +4066,7 @@ def test_address_query_as_not_owner(
 
 
 def test_address_query_as_app_with_permission(
-    app_api_client, address_other_country, permission_manage_users,
+    app_api_client, address_other_country, permission_manage_users
 ):
     variables = {"id": graphene.Node.to_global_id("Address", address_other_country.pk)}
     response = app_api_client.post_graphql(

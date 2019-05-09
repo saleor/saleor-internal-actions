@@ -17,7 +17,7 @@ FROM python:3.8-slim
 
 ARG STATIC_URL
 ENV STATIC_URL ${STATIC_URL:-/static/}
-
+ENV PYCURL_SSL_LIBRARY=openssl
 RUN groupadd -r saleor && useradd -r -g saleor saleor
 
 RUN apt-get update \
@@ -25,11 +25,14 @@ RUN apt-get update \
     libxml2 \
     libssl1.1 \
     libcairo2 \
+    libcurl4 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libgdk-pixbuf2.0-0 \
     shared-mime-info \
     mime-support \
+    python-psycopg2 \
+    python-pycurl \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

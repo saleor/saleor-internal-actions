@@ -4,6 +4,7 @@ from typing import List, Pattern, Union
 from django.utils.functional import SimpleLazyObject
 
 from saleor.settings import *  # noqa
+from tenants.postgresql_backend.creation import TEST_DOMAIN
 
 
 def lazy_re_compile(regex, flags=0):
@@ -37,6 +38,7 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 COUNTRIES_ONLY = None
 
+
 MEDIA_ROOT = None
 MEDIA_URL = "/media/"
 MAX_CHECKOUT_LINE_QUANTITY = 50
@@ -53,3 +55,13 @@ PATTERNS_IGNORED_IN_QUERY_CAPTURES: List[Union[Pattern, SimpleLazyObject]] = [
 ]
 
 INSTALLED_APPS.append("tests.api.pagination")  # noqa: F405
+TENANT_APPS.append("tests.api.pagination")  # noqa: F405
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", TEST_DOMAIN]
+
+PATTERNS_IGNORED_IN_QUERY_CAPTURES: List[Union[Pattern, SimpleLazyObject]] = [
+    lazy_re_compile(r"^SET\s+"),
+    lazy_re_compile(r"^SELECT \"tenants_tenant\".\"id\",.+ FROM \"tenants_tenant\"\s+"),
+]
+
+DEFAULT_BACKUP_BUCKET_NAME = "testbackups"

@@ -19,6 +19,7 @@ from django.test.utils import CaptureQueriesContext as BaseCaptureQueriesContext
 from django_countries import countries
 from PIL import Image
 from prices import Money, TaxedMoney
+from tenant_schemas.utils import get_tenant_model
 
 from saleor.account.models import Address, StaffNotificationRecipient, User
 from saleor.app.models import App
@@ -80,6 +81,31 @@ from saleor.webhook.event_types import WebhookEventType
 from saleor.webhook.models import Webhook
 from saleor.wishlist.models import Wishlist
 from tests.utils import create_image
+
+from tenants.postgresql_backend.creation import DEFAULT_TEST_TENANT, OTHER_TEST_TENANT
+from tenants.test.client import TenantClient
+
+
+# Needed for testdir fixtures
+pytest_plugins = "pytester"
+
+
+def pytest_configure(config):
+    """Flags python as being running inside a test suite.
+
+    Pattern from https://is.gd/hXRqGq (pytest documentation).
+    Needed by `tenants.management.commands.migrate`.
+    """
+    import sys
+
+    sys._called_from_test = True
+
+
+def pytest_unconfigure(config):
+    """Un-flags python as being running inside a test suite."""
+    import sys
+
+    del sys._called_from_test
 
 
 class CaptureQueriesContext(BaseCaptureQueriesContext):
@@ -178,6 +204,36 @@ def setup_vatlayer(settings):
     return settings
 
 
+@pytest.fixture
+def tenant_connection_keeper(test_tenant):
+    """
+    Restore the tenant connection once the wrapped test is over.
+    Useful when a test or the app changed the tenant connection schema.
+    """
+    yield
+    connection.set_tenant(test_tenant)
+
+
+@pytest.fixture
+def test_tenant(db):
+    return get_tenant_model().objects.get(**DEFAULT_TEST_TENANT)
+
+
+@pytest.fixture
+def other_tenant(db):
+    return get_tenant_model().objects.get(**OTHER_TEST_TENANT)
+
+
+@pytest.fixture
+def client(test_tenant):
+    yield TenantClient(test_tenant)
+
+
+@pytest.fixture
+def other_client(other_tenant):
+    yield TenantClient(other_tenant)
+
+
 @pytest.fixture(autouse=True)
 def setup_dummy_gateway(settings):
     settings.PLUGINS = ["saleor.payment.gateways.dummy.plugin.DummyGatewayPlugin"]
@@ -192,7 +248,12 @@ def site_settings(db, settings) -> SiteSettings:
     saleor.site.models.SiteSettings have a one-to-one relationship and a site
     should never exist without a matching settings object.
     """
-    site = Site.objects.get_or_create(name="mirumee.com", domain="mirumee.com")[0]
+    # Django is creating a site alongside to this fixture at
+    # django.contrib.sites.apps.SitesConfig.ready
+    #
+    # Tenant expect to only have a single site
+    Site.objects.all().delete()
+    site = Site.objects.create(name="mirumee.com", domain="mirumee.com")
     obj = SiteSettings.objects.get_or_create(
         site=site,
         default_mail_sender_name="Mirumee Labs",
@@ -448,6 +509,14 @@ def order(customer_user):
 def admin_user(db):
     """Return a Django admin user."""
     return User.objects.create_superuser("admin@example.com", "password")
+
+
+@pytest.fixture
+def admin_client(test_tenant, admin_user):
+    """Return a Django test client logged in as an admin user."""
+    client = TenantClient(test_tenant)
+    client.login(username=admin_user.email, password="password")
+    return client
 
 
 @pytest.fixture
@@ -745,7 +814,7 @@ def product_with_two_variants(product_type, category, warehouse):
     ProductVariant.objects.bulk_create(variants)
     Stock.objects.bulk_create(
         [
-            Stock(warehouse=warehouse, product_variant=variant, quantity=10,)
+            Stock(warehouse=warehouse, product_variant=variant, quantity=10)
             for variant in variants
         ]
     )
@@ -1837,7 +1906,7 @@ def digital_content(category, media_root, warehouse) -> DigitalContent:
         product=product, sku="SKU_554", cost_price=Money(1, "USD")
     )
     Stock.objects.create(
-        product_variant=product_variant, warehouse=warehouse, quantity=5,
+        product_variant=product_variant, warehouse=warehouse, quantity=5
     )
 
     assert product_variant.is_digital()

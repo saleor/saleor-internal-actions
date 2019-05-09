@@ -1,13 +1,14 @@
 import os
 
-from celery import Celery
 from django.conf import settings
+from tenant_schemas_celery.app import CeleryApp
 
 from .plugins import discover_plugins_modules
 
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "saleor.settings")
 
-app = Celery("saleor")
+app = CeleryApp("saleor")
 
 CELERY_TIMEZONE = "UTC"
 

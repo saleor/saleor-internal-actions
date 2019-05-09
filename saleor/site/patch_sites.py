@@ -17,14 +17,16 @@ with lock:
 
 def new_get_current(self, request=None):
     from django.conf import settings
+    from django.db import connection
 
     if getattr(settings, "SITE_ID", ""):
         site_id = settings.SITE_ID
-        if site_id not in THREADED_SITE_CACHE:
+        site_key = "{}:{}".format(connection.schema_name, site_id)
+        if site_key not in THREADED_SITE_CACHE:
             with lock:
                 site = self.prefetch_related("settings").filter(pk=site_id)[0]
-                THREADED_SITE_CACHE[site_id] = site
-        return THREADED_SITE_CACHE[site_id]
+                THREADED_SITE_CACHE[site_key] = site
+        return THREADED_SITE_CACHE[site_key]
     elif request:
         host = request.get_host()
         try:

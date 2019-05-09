@@ -15,14 +15,16 @@ from saleor.graphql.utils.filters import filter_by_query_param
 from tests.api.utils import get_graphql_content
 
 
-def test_middleware_dont_generate_sql_requests(client, settings, assert_num_queries):
-    """When requesting on the GraphQL API endpoint, no SQL request should happen
-    indirectly. This test ensures that."""
+def test_middleware_generates_only_tenant_middleware_sql_requests(
+    client, settings, assert_num_queries
+):
+    """When requesting on the GraphQL API endpoint,
+    only tenant SQL request can happen. This test ensures that."""
 
     # Enables the Graphql playground
     settings.DEBUG = True
 
-    with assert_num_queries(0):
+    with assert_num_queries(2):
         response = client.get(reverse("api"))
         assert response.status_code == 200
 

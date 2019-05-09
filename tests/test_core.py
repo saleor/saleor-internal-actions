@@ -30,6 +30,7 @@ from saleor.giftcard.models import GiftCard
 from saleor.order.models import Order
 from saleor.product.models import ProductImage, ProductType
 from saleor.shipping.models import ShippingZone
+from tenants.test.client import TenantClient
 
 type_schema = {
     "Vegetable": {

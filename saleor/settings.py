@@ -62,10 +62,13 @@ INTERNAL_IPS = get_list(os.environ.get("INTERNAL_IPS", "127.0.0.1"))
 
 DATABASES = {
     "default": dj_database_url.config(
-        default="postgres://saleor:saleor@localhost:5432/saleor", conn_max_age=600
+        default="postgres://saleor:saleor@localhost:5432/saleor",
+        engine="tenants.postgresql_backend",
+        conn_max_age=600,
     )
 }
 
+DATABASE_ROUTERS = ("tenant_schemas.routers.TenantSyncRouter",)
 
 TIME_ZONE = "America/Chicago"
 LANGUAGE_CODE = "en"
@@ -148,6 +151,8 @@ EMAIL_USE_SSL = email_config["EMAIL_USE_SSL"]
 ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL = get_bool_from_env(
     "ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL", True
 )
+if os.environ.get("USE_SES", False):
+    EMAIL_BACKEND = "django_ses.SESBackend"
 
 ENABLE_SSL = get_bool_from_env("ENABLE_SSL", False)
 
@@ -158,6 +163,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, "media")
 MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
+DEFAULT_FILE_STORAGE = "tenants.storages.TenantFileSystemStorage"
 
 STATIC_ROOT = os.path.join(PROJECT_ROOT, "static")
 STATIC_URL = os.environ.get("STATIC_URL", "/static/")
@@ -202,6 +208,7 @@ if not SECRET_KEY and DEBUG:
     SECRET_KEY = get_random_secret_key()
 
 MIDDLEWARE = [
+    "tenants.middleware.SaleorTenantMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "saleor.core.middleware.request_time",
@@ -213,7 +220,7 @@ MIDDLEWARE = [
     "saleor.core.middleware.plugins",
 ]
 
-INSTALLED_APPS = [
+TENANT_APPS = [
     # External apps that need to go before django's
     "storages",
     # Django modules
@@ -244,6 +251,8 @@ INSTALLED_APPS = [
     "saleor.webhook",
     "saleor.wishlist",
     "saleor.app",
+    # Multitenancy apps
+    "saleor.multitenancy",
     # External apps
     "versatileimagefield",
     "django_measurement",
@@ -256,6 +265,14 @@ INSTALLED_APPS = [
     "django_filters",
     "phonenumber_field",
 ]
+
+SHARED_APPS = ["tenant_schemas", "tenants", "django.contrib.contenttypes"]
+
+INSTALLED_APPS = ["tenants", "tenant_schemas", "django_ses", *TENANT_APPS]
+
+TENANT_MODEL = "tenants.Tenant"
+
+DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
 
 
 ENABLE_DEBUG_TOOLBAR = get_bool_from_env("ENABLE_DEBUG_TOOLBAR", False)
@@ -382,7 +399,7 @@ TEST_RUNNER = "tests.runner.PytestTestRunner"
 
 PLAYGROUND_ENABLED = get_bool_from_env("PLAYGROUND_ENABLED", True)
 
-ALLOWED_HOSTS = get_list(os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1"))
+ALLOWED_HOSTS = get_list(os.environ.get("ALLOWED_HOSTS", "*"))
 ALLOWED_GRAPHQL_ORIGINS = os.environ.get("ALLOWED_GRAPHQL_ORIGINS", "*")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -418,7 +435,7 @@ elif GS_STORAGE_BUCKET_NAME:
     STATICFILES_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 
 if AWS_MEDIA_BUCKET_NAME:
-    DEFAULT_FILE_STORAGE = "saleor.core.storages.S3MediaStorage"
+    DEFAULT_FILE_STORAGE = "tenants.storages.TenantS3MediaStorage"
     THUMBNAIL_DEFAULT_STORAGE = DEFAULT_FILE_STORAGE
 elif GS_MEDIA_BUCKET_NAME:
     DEFAULT_FILE_STORAGE = "saleor.core.storages.GCSMediaStorage"
@@ -461,7 +478,9 @@ AUTHENTICATION_BACKENDS = [
 
 # Django GraphQL JWT settings
 GRAPHQL_JWT = {
-    "JWT_PAYLOAD_HANDLER": "saleor.graphql.utils.create_jwt_payload",
+    "JWT_ENCODE_HANDLER": "tenants.jwt.jwt_encode",
+    "JWT_DECODE_HANDLER": "tenants.jwt.jwt_decode",
+    "JWT_PAYLOAD_HANDLER": "tenants.jwt.jwt_payload",
     # How long until a token expires, default is 5m from graphql_jwt.settings
     "JWT_EXPIRATION_DELTA": timedelta(minutes=5),
     # Whether the JWT tokens should expire or not
@@ -477,6 +496,9 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", None)
+CELERY_QUEUE_PREFIX = os.environ.get("CELERY_QUEUE_PREFIX", None)
+if CELERY_QUEUE_PREFIX:
+    CELERY_BROKER_TRANSPORT_OPTIONS = {"queue_name_prefix": CELERY_QUEUE_PREFIX}
 
 # Change this value if your application is running behind a proxy,
 # e.g. HTTP_CF_Connecting_IP for Cloudflare or X_FORWARDED_FOR
@@ -555,4 +577,11 @@ if "JAEGER_AGENT_HOST" in os.environ:
 REDIS_URL = os.environ.get("REDIS_URL")
 if REDIS_URL:
     CACHE_URL = os.environ.setdefault("CACHE_URL", REDIS_URL)
-CACHES = {"default": django_cache_url.config()}
+
+CACHES = {
+    "default": dict(
+        django_cache_url.config(),
+        KEY_FUNCTION="tenant_schemas.cache.make_key",
+        REVERSE_KEY_FUNCTION="tenant_schemas.cache.reverse_key",
+    )
+}
