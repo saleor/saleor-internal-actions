@@ -17,9 +17,6 @@ services:
       - redis
       - jaeger
     volumes:
-      - ./saleor/:/app/saleor:Z
-      - ./templates/:/app/templates:Z
-      - ./tests/:/app/tests
       # prevents overshadowing of build-time assets
       - /app/saleor/static/assets
       - /app/templates/templated_email/compiled
@@ -27,10 +24,6 @@ services:
       - saleor-media:/app/media
     command: python manage.py runserver 0.0.0.0:8000
     env_file: ./common.env
-    environment:
-      - JAEGER_AGENT_HOST=jaeger
-      - STOREFRONT_URL=http://localhost:3000/
-      - DASHBOARD_URL=http://localhost:9000/
 
   db:
     image: library/postgres:11.1-alpine
@@ -69,8 +62,6 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./saleor/:/app/saleor:Z,cached
-      - ./templates/:/app/templates:Z,cached
       # prevents overshadowing of build-time assets
       - /app/templates/templated_email/compiled
       # shared volume between worker and api for media

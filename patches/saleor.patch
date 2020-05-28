@@ -1,0 +1,72 @@
+diff --git a/saleor/celeryconf.py b/saleor/celeryconf.py
+index 0aa519bca..41bc230cf 100644
+--- a/saleor/celeryconf.py
++++ b/saleor/celeryconf.py
+@@ -1,13 +1,14 @@
+ import os
+
+-from celery import Celery
+ from django.conf import settings
++from tenant_schemas_celery.app import CeleryApp
+
+ from .plugins import discover_plugins_modules
+
++
+ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "saleor.settings")
+
+-app = Celery("saleor")
++app = CeleryApp("saleor")
+
+ CELERY_TIMEZONE = "UTC"
+
+diff --git a/saleor/site/patch_sites.py b/saleor/site/patch_sites.py
+index 87ad22b3f..f01f68031 100644
+--- a/saleor/site/patch_sites.py
++++ b/saleor/site/patch_sites.py
+@@ -17,14 +17,16 @@ with lock:
+
+ def new_get_current(self, request=None):
+     from django.conf import settings
++    from django.db import connection
+
+     if getattr(settings, "SITE_ID", ""):
+         site_id = settings.SITE_ID
+-        if site_id not in THREADED_SITE_CACHE:
++        site_key = "{}:{}".format(connection.schema_name, site_id)
++        if site_key not in THREADED_SITE_CACHE:
+             with lock:
+                 site = self.prefetch_related("settings").filter(pk=site_id)[0]
+-                THREADED_SITE_CACHE[site_id] = site
+-        return THREADED_SITE_CACHE[site_id]
++                THREADED_SITE_CACHE[site_key] = site
++        return THREADED_SITE_CACHE[site_key]
+     elif request:
+         host = request.get_host()
+         try:
+diff --git a/setup.cfg b/setup.cfg
+index 984ccce51..5b83ee251 100644
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -74,7 +74,7 @@ plugins =
+     mypy_django_plugin.main
+
+ [mypy.plugins.django-stubs]
+-django_settings_module = saleor.settings
++django_settings_module = saleor.settings_multitenant
+
+ [mypy-saleor.*.migrations.*]
+ ignore_errors = True
+diff --git a/templates/graphql/playground.html b/templates/graphql/playground.html
+index 8402d6397..b5793e2ea 100644
+--- a/templates/graphql/playground.html
++++ b/templates/graphql/playground.html
+@@ -44,7 +44,8 @@
+   </div>
+   <script>window.addEventListener('load', function (event) {
+       const settings = {
+-        "schema.polling.enable": false
++        "schema.polling.enable": false,
++        "request.credentials": "include"
+       };
+       const root = document.getElementById("root");
+       const endpoint = root.dataset.endpoint;

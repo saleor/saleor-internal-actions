@@ -1,0 +1,295 @@
+diff --git a/setup.cfg b/setup.cfg
+index 984ccce51..ccf7b3c81 100644
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -15,7 +15,7 @@ exclude_lines =
+     if TYPE_CHECKING:
+
+ [tool:pytest]
+-addopts = -n auto --vcr-record-mode=none --ds=tests.settings
++addopts = -n auto --vcr-record-mode=none --ds=tests.settings_multitenant
+ testpaths = tests saleor
+ filterwarnings =
+     ignore::DeprecationWarning
+diff --git a/tests/api/conftest.py b/tests/api/conftest.py
+index 41de78a89..ef90817a0 100644
+--- a/tests/api/conftest.py
++++ b/tests/api/conftest.py
+@@ -19,10 +20,15 @@ from .utils import assert_no_permission
+ API_PATH = reverse("api")
+
+
+-class ApiClient(Client):
++from django.db import connection
++from tenants.test.client import TenantClient
++
++
++class TenantApiClient(TenantClient):
+     """GraphQL API client."""
+
+     def __init__(self, *args, **kwargs):
++        super().__init__(*args, **kwargs)
+         user = kwargs.pop("user", AnonymousUser())
+         app = kwargs.pop("app", None)
+         self._user = None
+@@ -30,12 +36,9 @@ class ApiClient(Client):
+         self.user = user
+         self.app_token = None
+         self.app = app
+-        if not user.is_anonymous:
+-            self.token = get_token(user)
+-        elif app:
++        if app:
+             token = app.tokens.first()
+             self.app_token = token.auth_token if token else None
+-        super().__init__(*args, **kwargs)
+
+     def _base_environ(self, **request):
+         environ = super()._base_environ(**request)
+@@ -53,7 +56,7 @@ class ApiClient(Client):
+     def user(self, user):
+         self._user = user
+         if not user.is_anonymous:
+-            self.token = get_token(user)
++            self.token = get_token(user, context=self)
+
+     def post(self, data=None, **kwargs):
+         """Send a POST request.
+@@ -115,28 +118,33 @@ class ApiClient(Client):
+
+
+ @pytest.fixture
+-def app_api_client(app):
+-    return ApiClient(app=app)
++def app_api_client(test_tenant, app):
++    return TenantApiClient(test_tenant, app=app)
++
++
++@pytest.fixture
++def staff_api_client(test_tenant, staff_user):
++    return TenantApiClient(test_tenant, user=staff_user)
+
+
+ @pytest.fixture
+-def staff_api_client(staff_user):
+-    return ApiClient(user=staff_user)
++def superuser_api_client(test_tenant, superuser):
++    return TenantApiClient(test_tenant, user=superuser)
+
+
+ @pytest.fixture
+-def superuser_api_client(superuser):
+-    return ApiClient(user=superuser)
++def user_api_client(test_tenant, customer_user):
++    return TenantApiClient(test_tenant, user=customer_user)
+
+
+ @pytest.fixture
+-def user_api_client(customer_user):
+-    return ApiClient(user=customer_user)
++def api_client(test_tenant):
++    return TenantApiClient(test_tenant, user=AnonymousUser())
+
+
+ @pytest.fixture
+-def api_client():
+-    return ApiClient(user=AnonymousUser())
++def other_tenant_api_client(other_tenant):
++    return TenantApiClient(other_tenant, user=AnonymousUser)
+
+
+ @pytest.fixture
+diff --git a/tests/api/test_account.py b/tests/api/test_account.py
+index 09c79f8b7..e648fe6eb 100644
+--- a/tests/api/test_account.py
++++ b/tests/api/test_account.py
+@@ -40,6 +40,13 @@ from .utils import (
+     get_multipart_request_body,
+ )
+
++from tenants.jwt import jwt_decode
++
++
++@pytest.fixture
++def media_url(test_tenant):
++    return "http://{domain}/media/{domain}".format(domain=test_tenant.domain_url)
++
+
+ @pytest.fixture
+ def query_customer_with_filter():
+@@ -97,7 +104,7 @@ def test_create_token_mutation(api_client, staff_user, settings):
+         response = api_client.post_graphql(query, variables)
+     content = get_graphql_content(response)
+     token_data = content["data"]["tokenCreate"]
+-    token = jwt.decode(token_data["token"], settings.SECRET_KEY)
++    token = jwt_decode(token_data["token"])
+     staff_user.refresh_from_db()
+     assert staff_user.last_login == time
+     assert token["email"] == staff_user.email
+@@ -3405,7 +3412,9 @@ def test_user_avatar_update_mutation_permission(api_client):
+     assert_no_permission(response)
+
+
+-def test_user_avatar_update_mutation(monkeypatch, staff_api_client, media_root):
++def test_user_avatar_update_mutation(
++    monkeypatch, staff_api_client, media_root, media_url
++):
+     query = USER_AVATAR_UPDATE_MUTATION
+
+     user = staff_api_client.user
+@@ -3429,15 +3438,15 @@ def test_user_avatar_update_mutation(monkeypatch, staff_api_client, media_root):
+     user.refresh_from_db()
+
+     assert user.avatar
+-    assert data["user"]["avatar"]["url"].startswith(
+-        "http://testserver/media/user-avatars/avatar"
+-    )
++    assert data["user"]["avatar"]["url"].startswith(media_url + "/user-avatars/avatar")
+
+     # The image creation should have triggered a warm-up
+     mock_create_thumbnails.assert_called_once_with(user_id=user.pk)
+
+
+-def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
++def test_user_avatar_update_mutation_image_exists(
++    staff_api_client, media_root, media_url
++):
+     query = USER_AVATAR_UPDATE_MUTATION
+
+     user = staff_api_client.user
+@@ -3457,7 +3466,7 @@ def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
+
+     assert user.avatar != avatar_mock
+     assert data["user"]["avatar"]["url"].startswith(
+-        "http://testserver/media/user-avatars/new_image"
++        media_url + "/user-avatars/new_image"
+     )
+
+
+diff --git a/tests/api/test_graphql.py b/tests/api/test_graphql.py
+index ea9e6a9c2..8e90fd7be 100644
+--- a/tests/api/test_graphql.py
++++ b/tests/api/test_graphql.py
+@@ -15,14 +15,16 @@ from saleor.graphql.utils.filters import filter_by_query_param
+ from tests.api.utils import get_graphql_content
+
+
+-def test_middleware_dont_generate_sql_requests(client, settings, assert_num_queries):
+-    """When requesting on the GraphQL API endpoint, no SQL request should happen
+-    indirectly. This test ensures that."""
++def test_middleware_generates_only_tenant_middleware_sql_requests(
++    client, settings, assert_num_queries
++):
++    """When requesting on the GraphQL API endpoint,
++    only tenant SQL request can happen. This test ensures that."""
+
+     # Enables the Graphql playground
+     settings.DEBUG = True
+
+-    with assert_num_queries(0):
++    with assert_num_queries(2):
+         response = client.get(reverse("api"))
+         assert response.status_code == 200
+
+diff --git a/tests/conftest.py b/tests/conftest.py
+index e57c8ca27..de6d69a4b 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -81,6 +81,70 @@ from saleor.webhook.models import Webhook
+ from saleor.wishlist.models import Wishlist
+ from tests.utils import create_image
+
++from tenant_schemas.utils import get_tenant_model
++from tenants.postgresql_backend.creation import DEFAULT_TEST_TENANT, OTHER_TEST_TENANT
++from tenants.test.client import TenantClient
++
++
++# Needed for testdir fixtures
++pytest_plugins = "pytester"
++
++
++def pytest_configure(config):
++    """Flags python as being running inside a test suite.
++
++    Pattern from https://is.gd/hXRqGq (pytest documentation).
++    Needed by `tenants.management.commands.migrate`.
++    """
++    import sys
++
++    sys._called_from_test = True
++
++
++def pytest_unconfigure(config):
++    """Un-flags python as being running inside a test suite."""
++    import sys
++
++    del sys._called_from_test
++
++
++@pytest.fixture
++def tenant_connection_keeper(test_tenant):
++    """
++    Restore the tenant connection once the wrapped test is over.
++    Useful when a test or the app changed the tenant connection schema.
++    """
++    yield
++    connection.set_tenant(test_tenant)
++
++
++@pytest.fixture
++def test_tenant(db):
++    return get_tenant_model().objects.get(**DEFAULT_TEST_TENANT)
++
++
++@pytest.fixture
++def other_tenant(db):
++    return get_tenant_model().objects.get(**OTHER_TEST_TENANT)
++
++
++@pytest.fixture
++def client(test_tenant):
++    yield TenantClient(test_tenant)
++
++
++@pytest.fixture
++def other_client(other_tenant):
++    yield TenantClient(other_tenant)
++
++
++@pytest.fixture
++def admin_client(test_tenant, admin_user):
++    """Return a Django test client logged in as an admin user."""
++    client = TenantClient(test_tenant)
++    client.login(username=admin_user.email, password="password")
++    return client
++
+
+ class CaptureQueriesContext(BaseCaptureQueriesContext):
+     IGNORED_QUERIES = settings.PATTERNS_IGNORED_IN_QUERY_CAPTURES  # type: ignore
+@@ -192,7 +256,12 @@ def site_settings(db, settings) -> SiteSettings:
+     saleor.site.models.SiteSettings have a one-to-one relationship and a site
+     should never exist without a matching settings object.
+     """
+-    site = Site.objects.get_or_create(name="mirumee.com", domain="mirumee.com")[0]
++    # Django is creating a site alongside to this fixture at
++    # django.contrib.sites.apps.SitesConfig.ready
++    #
++    # Tenant expect to only have a single site
++    Site.objects.all().delete()
++    site = Site.objects.create(name="mirumee.com", domain="mirumee.com")
+     obj = SiteSettings.objects.get_or_create(
+         site=site,
+         default_mail_sender_name="Mirumee Labs",
+diff --git a/tests/settings.py b/tests/settings.py
+index a1d8fdab4..9238fea41 100644
+--- a/tests/settings.py
++++ b/tests/settings.py
+@@ -3,7 +3,7 @@ from typing import List, Pattern, Union
+
+ from django.utils.functional import SimpleLazyObject
+
+-from saleor.settings import *  # noqa
++from saleor.settings_multitenant import *  # noqa
+
+
+ def lazy_re_compile(regex, flags=0):

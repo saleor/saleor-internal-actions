@@ -1,54 +1,45 @@
-### Build and install packages
-FROM python:3.8 as build-python
-
-RUN apt-get -y update \
-  && apt-get install -y gettext \
-  # Cleanup apt cache
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements_dev.txt /app/
-WORKDIR /app
-RUN pip install -r requirements_dev.txt
-
-### Final image
-FROM python:3.8-slim
+ARG VERSION="0935d4e6e251fad97213f11311bc2a2150e3efd9"
+FROM mirumee/saleor:${VERSION}
 
 ARG STATIC_URL
 ENV STATIC_URL ${STATIC_URL:-/static/}
 ENV PYCURL_SSL_LIBRARY=openssl
-RUN groupadd -r saleor && useradd -r -g saleor saleor
 
 RUN apt-get update \
-  && apt-get install -y \
-    libxml2 \
-    libssl1.1 \
-    libcairo2 \
+    && apt-get install -y \
+    git \
+    gcc \
     libcurl4 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    shared-mime-info \
-    mime-support \
+    libcurl4-openssl-dev \
+    libssl-dev \
     python-psycopg2 \
     python-pycurl \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+    python-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . /app
-COPY --from=build-python /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
-COPY --from=build-python /usr/local/bin/ /usr/local/bin/
+
+ADD requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt
+
 WORKDIR /app
 
-RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --no-input
+ADD tenants/ ./tenants/
+ADD saleor/multitenancy/ saleor/multitenancy/
+ADD saleor/settings_multitenant.py saleor/settings_multitenant.py
 
-RUN mkdir -p /app/media /app/static \
-  && chown -R saleor:saleor /app/
+ADD templates/templated_email/dashboard/staff/password.email \
+    templates/templated_email/dashboard/staff/password.email
 
-EXPOSE 8000
-ENV PORT 8000
-ENV PYTHONUNBUFFERED 1
-ENV PROCESSES 4
+ADD templates/templated_email/compiled/password.html \
+    templates/templated_email/compiled/password.html
 
-CMD ["uwsgi", "--ini", "/app/saleor/wsgi/uwsgi.ini"]
+ADD tests/tenants/ tests/tenants/
+ADD tests/settings_multitenant.py tests
+ADD tests/api/test_tenants.py tests/api/test_tenants.py
+ADD tests/api/pagination/migrations/ tests/api/pagination/migrations/
+
+ADD patches/*.patch patches/
+RUN git apply --verbose patches/*.patch
+
+ENV DJANGO_SETTINGS_MODULE="saleor.settings_multitenant"
