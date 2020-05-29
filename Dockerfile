@@ -1,26 +1,46 @@
 ARG VERSION="0935d4e6e251fad97213f11311bc2a2150e3efd9"
 FROM mirumee/saleor:${VERSION}
 
-ARG STATIC_URL
-ENV STATIC_URL ${STATIC_URL:-/static/}
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PYCURL_SSL_LIBRARY=openssl
 
 RUN apt-get update \
     && apt-get install -y \
-    git \
+    curl \
     gcc \
+    git \
+    gnupg \
     libcurl4 \
     libcurl4-openssl-dev \
     libssl-dev \
     python-psycopg2 \
     python-pycurl \
-    python-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    python-dev
 
+ARG PYTHON_XRAY_VERSION="0.0.2"
+ARG PYTHON_XRAY_FILE="/tmp/opentracing-python-xray.tar.gz"
+ARG PYTHON_XRAY_URL="https://github.com/NyanKiyoshi/opentracing-python-xray/releases/download/${PYTHON_XRAY_VERSION}/opentracing-python-xray.tar.gz"
+
+ARG VERSION
+ENV PROJECT_VERSION $VERSION
+
+ADD opentracing-python-xray.gpg .
+
+RUN curl -fLo ${PYTHON_XRAY_FILE} ${PYTHON_XRAY_URL} \
+    && curl -fLo ${PYTHON_XRAY_FILE}.sig ${PYTHON_XRAY_URL}.sig \
+    && gpg --import opentracing-python-xray.gpg \
+    && gpg --verify ${PYTHON_XRAY_FILE}.sig ${PYTHON_XRAY_FILE} \
+    && tar -xvf ${PYTHON_XRAY_FILE} \
+    && cd opentracing-python-xray-* \
+    && ./setup.py install \
+    && update-ca-certificates
 
 ADD requirements.txt /tmp
 RUN pip install -r /tmp/requirements.txt
+
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -R /tmp/*
 
 WORKDIR /app
 
@@ -43,3 +63,7 @@ ADD patches/*.patch patches/
 RUN git apply --verbose patches/*.patch
 
 ENV DJANGO_SETTINGS_MODULE="saleor.settings_multitenant"
+
+ARG STATIC_URL
+ENV STATIC_URL ${STATIC_URL:-/static/}
+RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --no-input

@@ -1,6 +1,8 @@
 import os
 import dj_database_url
 import django_cache_url
+import opentracing
+import xray_ot
 
 from saleor.settings import *  # noqa
 
@@ -11,8 +13,19 @@ ALLOWED_HOSTS = get_list(os.environ.get("ALLOWED_HOSTS", "*"))
 TENANT_MODEL = "tenants.Tenant"
 
 TENANT_APPS = [*INSTALLED_APPS, "saleor.multitenancy"]
-SHARED_APPS = ["tenant_schemas", "tenants", "django.contrib.contenttypes"]
-INSTALLED_APPS = ["tenants", "tenant_schemas", "django_ses", *TENANT_APPS]
+SHARED_APPS = [
+    "tenant_schemas",
+    "tenants",
+    "django.contrib.contenttypes",
+    "django_version",
+]
+INSTALLED_APPS = [
+    "tenants",
+    "tenant_schemas",
+    "django_ses",
+    "django_version",
+    *TENANT_APPS,
+]
 
 MIDDLEWARE = ["tenants.middleware.SaleorTenantMiddleware"] + MIDDLEWARE
 
@@ -57,3 +70,18 @@ DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
 
 if os.environ.get("USE_SES", False):
     EMAIL_BACKEND = "django_ses.SESBackend"
+
+# X-Ray
+PROJECT_VERSION = os.environ.get("PROJECT_VERSION", "undefined")
+XRAY_COLLECTOR_HOST = os.environ.get("COLLECTOR_HOST", None)
+XRAY_COLLECTOR_PORT = int(os.environ.get("COLLECTOR_PORT", 2000))
+XRAY_COLLECTOR_VERBOSITY = int(os.environ.get("COLLECTOR_VERBOSITY", 1))
+
+if XRAY_COLLECTOR_HOST:
+    tracer = xray_ot.Tracer(
+        component_name="Saleor-Staging",
+        collector_host=XRAY_COLLECTOR_HOST,
+        collector_port=XRAY_COLLECTOR_PORT,
+        verbosity=XRAY_COLLECTOR_VERBOSITY,
+    )
+    opentracing.set_global_tracer(tracer)
