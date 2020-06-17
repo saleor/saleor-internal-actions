@@ -18,6 +18,13 @@ def mocked_run_restore():
         yield mocked
 
 
+@pytest.fixture
+def mocked_media_list():
+    with mock.patch.object(restore_tenant.MediaManager, "_list_storage_dir") as patched:
+        patched.return_value = [], []
+        yield patched
+
+
 def test_location_required(test_tenant):
     with pytest.raises(CommandError) as exc:
         call_command(CMD, bucket_name="abc")
@@ -30,6 +37,7 @@ def test_restore_from_bucket(
     tenant_connection_keeper,
     mocked_run_restore,
     mock_directory_output,
+    mocked_media_list,
     test_tenant,
     archive_path,
     temporary_working_directory,
@@ -64,6 +72,7 @@ def test_restore_from_bucket(
         f"INFO:Uploading archive to s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Retrieving archive from s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
     ]
 
@@ -73,6 +82,7 @@ def test_restore_from_local_file(
     testdir,
     mocked_run_restore,
     mock_directory_output,
+    mocked_media_list,
     test_tenant,
     temporary_working_directory,
     temporary_raw_schema_path,
@@ -98,6 +108,7 @@ def test_restore_from_local_file(
     assert logs.messages == [
         f"INFO:Created archive at: {str(wanted_archive_path)}",
         f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
     ]
 
@@ -109,6 +120,7 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     testdir,
     mocked_run_restore,
     mock_directory_output,
+    mocked_media_list,
     test_tenant,
     temporary_working_directory,
     temporary_raw_schema_path,
@@ -137,6 +149,7 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     assert logs.messages == [
         f"INFO:Created archive at: {str(wanted_archive_path)}",
         f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
         f"INFO:Updating outdated site domain...",
     ]

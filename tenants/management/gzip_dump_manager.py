@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 class TenantDump:
     DEFAULT_COMPRESSION_LEVEL = 6
-
-    SCHEMA_DATA_FILENAME = "schema.json"
     IGNORE_ERRS_RMTREE = True
+    MEDIA_DIRNAME = "media"
+    SCHEMA_DATA_FILENAME = "schema.json"
 
     def __init__(self, *, temp_working_directory: Optional[Path] = None):
         self._temp_working_directory: Optional[Path] = temp_working_directory
@@ -33,6 +33,10 @@ class TenantDump:
     def schema_path(self):
         return self.temp_working_directory / self.SCHEMA_DATA_FILENAME
 
+    @property
+    def media_dir(self):
+        return self.temp_working_directory / self.MEDIA_DIRNAME
+
     def start(self):
         self.temp_working_directory.mkdir(mode=0o700)
 
@@ -49,6 +53,7 @@ class TenantDump:
             name=archive_path, mode="w", compresslevel=level
         ) as archive:
             archive.add(name=self.schema_path, arcname=self.SCHEMA_DATA_FILENAME)
+            archive.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
         logger.info("Created archive at: %s", archive_path)
 
     def decompress_all(

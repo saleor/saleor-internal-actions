@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Set
 import boto3
 from boto3_type_annotations.s3 import Client
 from django.contrib.sites.models import Site
-from django.core.management import CommandError
+from django.core.management import call_command, CommandError
 from django.core.management.commands.loaddata import Command as BaseLoadDataCommand
 from django.db import connection
 
@@ -19,6 +19,7 @@ from tenants.management.argparse import (
 )
 
 from ..gzip_dump_manager import TenantDump
+from ..media_manager import MediaManager
 from . import backup_tenant
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,10 @@ class Command(BaseLoadDataCommand):
     def _run_django_load_data(self, *dump_paths, **options):
         return super().handle(*dump_paths, **options)
 
+    def _run_media_restore(self):
+        MediaManager(self._manager.media_dir).upload()
+        call_command("create_thumbnails")
+
     def run_restore(self):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
@@ -101,6 +106,7 @@ class Command(BaseLoadDataCommand):
         try:
             logger.info("Restoring the data...")
             self._run_django_load_data(dump_path, **options)
+            self._run_media_restore()
 
             site: Site = Site.objects.get()
             if site.domain != domain:

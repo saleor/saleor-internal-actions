@@ -16,6 +16,7 @@ from tenants.management.argparse import (
     remove_actions,
 )
 from tenants.management.gzip_dump_manager import TenantDump
+from tenants.management.media_manager import MediaManager
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,9 @@ ENVIRONMENT VARIABLES:
     def _run_django_dump_data(self, *app_labels, **options):
         return super().handle(*app_labels, **options)
 
+    def _run_media_backup(self, media_dir):
+        MediaManager(media_dir).download()
+
     def handle(self, app_labels, location: LOCATION_TYPE, compression_level, **options):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
@@ -101,6 +105,7 @@ ENVIRONMENT VARIABLES:
 
             try:
                 self._run_django_dump_data(*app_labels, **options)
+                self._run_media_backup(archive.media_dir)
             finally:
                 connection.set_tenant(connection.tenant, prev_include_public)
 

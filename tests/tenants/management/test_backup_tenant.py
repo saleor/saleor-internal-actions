@@ -36,6 +36,19 @@ def mocked_upload_to_s3():
         yield patched
 
 
+@pytest.fixture
+def mocked_media_backup():
+    with mock.patch.object(backup_tenant.Command, "_run_media_backup") as patched:
+        yield patched
+
+
+@pytest.fixture
+def mocked_media_list():
+    with mock.patch.object(backup_tenant.MediaManager, "_list_storage_dir") as patched:
+        patched.return_value = [], []
+        yield patched
+
+
 def test_location_required(test_tenant):
     with pytest.raises(CommandError) as exc:
         call_command(CMD, bucket_name="abc")
@@ -49,6 +62,7 @@ def test_dump_tenant(
     temporary_raw_schema_path,
     archive_path,
     mock_directory_output,
+    mocked_media_list,
     logs,
 ):
     extract_dir = testdir.tmpdir.join("extracted")
@@ -73,7 +87,7 @@ def test_dump_tenant(
     # Check once the gzip file is decompressed, it is still the same file
     # as the original
     with TarFile.gzopen(str(archive_path), mode="r") as fin:
-        assert [m.name for m in fin.getmembers()] == ["schema.json"]
+        assert [m.name for m in fin.getmembers()] == ["schema.json", "media"]
         extract_dir.mkdir()
 
         fin.extractall(path=str(extract_dir))
@@ -85,6 +99,7 @@ def test_dump_tenant(
 
 def test_not_providing_upload_filename_does_not_trigger_upload(
     mocked_upload_to_s3,
+    mocked_media_backup,
     mocked_dump,
     mocked_compress,
     archive_path,
@@ -111,6 +126,7 @@ def test_providing_custom_apps_to_include_or_exclude(
     excludes,
     temporary_working_directory,
     mocked_upload_to_s3,
+    mocked_media_backup,
     mocked_dump,
     mocked_compress,
     mock_directory_output,
@@ -140,6 +156,7 @@ def test_providing_custom_apps_to_include_or_exclude(
 def test_custom_compression_level(
     archive_path,
     mocked_upload_to_s3,
+    mocked_media_backup,
     mocked_dump,
     mocked_compress,
     mock_directory_output,
@@ -158,6 +175,7 @@ def test_upload_to_s3_bucket(
     temporary_raw_schema_path,
     archive_path,
     mock_directory_output,
+    mocked_media_list,
     logs,
 ):
     BUCKET_NAME = "tenants_dumps"
@@ -202,6 +220,7 @@ def test_save_to_local(
     temporary_raw_schema_path,
     archive_path,
     mock_directory_output,
+    mocked_media_list,
     logs,
 ):
     wanted_archive_path = testdir.tmpdir.join("backup.tar.gz")
