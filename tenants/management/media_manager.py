@@ -36,7 +36,7 @@ class MediaManager:
 
     def _download_file(self, path: Path):
         logger.info("Downloading %s to %s", path, self.media_dir)
-        content = self.storage.open(path).read()
+        content = self.storage.open(str(path)).read()
         local_path = self.media_dir / path
         with open(local_path, "wb") as f:
             f.write(content)
@@ -57,8 +57,8 @@ class MediaManager:
         with open(path, "rb") as f:
             self.storage.save(str(storage_path), f)
 
-    def _list_storage_dir(self, path) -> Tuple[List[str], List[str]]:
+    def _list_storage_dir(self, path: Path) -> Tuple[List[str], List[str]]:
         try:
-            return self.storage.listdir(path)
+            return self.storage.listdir(str(path))
         except FileNotFoundError:
             return [], []
