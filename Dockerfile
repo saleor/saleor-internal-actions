@@ -47,6 +47,7 @@ WORKDIR /app
 ADD tenants/ ./tenants/
 ADD saleor/multitenancy/ saleor/multitenancy/
 ADD saleor/settings_multitenant.py saleor/settings_multitenant.py
+ADD saleor/wsgi/uwsgi.ini saleor/wsgi/uwsgi.ini
 
 ADD templates/templated_email/dashboard/staff/password.email \
     templates/templated_email/dashboard/staff/password.email
