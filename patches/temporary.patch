@@ -1,0 +1,97 @@
+From 4de9eeb6b67488a883943f96f6f8117ee929097b Mon Sep 17 00:00:00 2001
+From: Maciej Korycinski <maciej@mirumee.com>
+Date: Wed, 7 Oct 2020 12:43:47 +0200
+Subject: [PATCH 1/2] Use our jwt_decode method in tests
+
+---
+ .../graphql/account/tests/mutations/test_token_refresh.py  | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/saleor/graphql/account/tests/mutations/test_token_refresh.py b/saleor/graphql/account/tests/mutations/test_token_refresh.py
+index 8f1676e5e7..03a84b3755 100644
+--- a/saleor/graphql/account/tests/mutations/test_token_refresh.py
++++ b/saleor/graphql/account/tests/mutations/test_token_refresh.py
+@@ -2,16 +2,15 @@
+ 
+ from django.middleware.csrf import _get_new_csrf_token
+ from freezegun import freeze_time
+-from jwt import decode
+ 
+ from .....account.error_codes import AccountErrorCode
+ from .....core.jwt import (
+     JWT_ACCESS_TYPE,
+-    JWT_ALGORITHM,
+     JWT_REFRESH_TOKEN_COOKIE_NAME,
+     create_access_token,
+     create_access_token_for_app,
+     create_refresh_token,
++    jwt_decode,
+ )
+ from ....tests.utils import get_graphql_content
+ 
+@@ -43,7 +42,7 @@ def test_refresh_token_get_token_from_cookie(api_client, customer_user, settings
+     assert not errors
+     token = data.get("token")
+     assert token
+-    payload = decode(token, settings.SECRET_KEY, algorithms=JWT_ALGORITHM)
++    payload = jwt_decode(token)
+     assert payload["email"] == customer_user.email
+     assert datetime.fromtimestamp(payload["iat"]) == datetime.utcnow()
+     assert (
+@@ -68,7 +67,7 @@ def test_refresh_token_get_token_from_input(api_client, customer_user, settings)
+     assert not errors
+     token = data.get("token")
+     assert token
+-    payload = decode(token, settings.SECRET_KEY, algorithms=JWT_ALGORITHM)
++    payload = jwt_decode(token)
+     assert payload["email"] == customer_user.email
+     assert datetime.fromtimestamp(payload["iat"]) == datetime.utcnow()
+     assert (
+
+From 88e100fdfee3eaffae1cc0ffc4703d82c1c40c76 Mon Sep 17 00:00:00 2001
+From: Maciej Korycinski <maciej@mirumee.com>
+Date: Wed, 7 Oct 2020 12:48:37 +0200
+Subject: [PATCH 2/2] change jwt.decode to our own
+
+---
+ .../graphql/account/tests/mutations/test_token_create_.py  | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/saleor/graphql/account/tests/mutations/test_token_create_.py b/saleor/graphql/account/tests/mutations/test_token_create_.py
+index 056a74db1e..2c4eb31a6d 100644
+--- a/saleor/graphql/account/tests/mutations/test_token_create_.py
++++ b/saleor/graphql/account/tests/mutations/test_token_create_.py
+@@ -3,14 +3,13 @@
+ import graphene
+ from django.middleware.csrf import _get_new_csrf_token
+ from freezegun import freeze_time
+-from jwt import decode
+ 
+ from .....account.error_codes import AccountErrorCode
+ from .....core.jwt import (
+     JWT_ACCESS_TYPE,
+-    JWT_ALGORITHM,
+     JWT_REFRESH_TYPE,
+     create_refresh_token,
++    jwt_decode,
+ )
+ from ....tests.utils import get_graphql_content
+ 
+@@ -52,7 +51,7 @@ def test_create_token(api_client, customer_user, settings):
+     token = data["token"]
+     refreshToken = data["refreshToken"]
+ 
+-    payload = decode(token, settings.SECRET_KEY, algorithms=JWT_ALGORITHM)
++    payload = jwt_decode(token)
+     assert payload["email"] == customer_user.email
+     assert payload["user_id"] == graphene.Node.to_global_id("User", customer_user.id)
+     assert datetime.fromtimestamp(payload["iat"]) == datetime.utcnow()
+@@ -60,7 +59,7 @@ def test_create_token(api_client, customer_user, settings):
+     assert datetime.fromtimestamp(payload["exp"]) == expected_expiration_datetime
+     assert payload["type"] == JWT_ACCESS_TYPE
+ 
+-    payload = decode(refreshToken, settings.SECRET_KEY, algorithms=JWT_ALGORITHM)
++    payload = jwt_decode(refreshToken)
+     assert payload["email"] == customer_user.email
+     assert datetime.fromtimestamp(payload["iat"]) == datetime.utcnow()
+     expected_expiration_datetime = datetime.utcnow() + settings.JWT_TTL_REFRESH

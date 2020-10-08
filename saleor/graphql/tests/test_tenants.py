@@ -1,6 +1,5 @@
-
-from tests.api.utils import get_graphql_content
-from tenants.jwt import jwt_decode
+from saleor.graphql.tests.utils import get_graphql_content
+from saleor.core.jwt import jwt_decode
 
 
 def test_tenant_aware_token_creation(
@@ -35,5 +34,5 @@ def test_tenant_aware_token_creation(
     token_data = content["data"]["tokenCreate"]
     errors = token_data["errors"]
     assert errors
-    assert not errors[0]["field"]
+    assert errors[0]["message"] == "Please, enter valid credentials"
     assert not token_data["token"]

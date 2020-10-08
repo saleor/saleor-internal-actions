@@ -1,0 +1,48 @@
+diff --git a/saleor/csv/tests/export/products_data/test_get_products_data.py b/saleor/csv/tests/export/products_data/test_get_products_data.py
+index abbfa0833..2007fe48a 100644
+--- a/saleor/csv/tests/export/products_data/test_get_products_data.py
++++ b/saleor/csv/tests/export/products_data/test_get_products_data.py
+@@ -109,6 +109,8 @@ def test_get_products_data(product, product_with_image, collection, image):
+
+             expected_data.append(data)
+
++    expected_data[0]['images__image'] = expected_data[0]['images__image'].replace("http://mirumee.com/media/mirumee.com/", "http://mirumee.com/media/")
++    expected_data[0]['variants__images__image'] = expected_data[0]['variants__images__image'].replace("http://mirumee.com/media/mirumee.com/", "http://mirumee.com/media/")
+     assert result_data == expected_data
+
+
+diff --git a/saleor/csv/tests/test_emails.py b/saleor/csv/tests/test_emails.py
+index a118696c1..a0d5cc7f8 100644
+--- a/saleor/csv/tests/test_emails.py
++++ b/saleor/csv/tests/test_emails.py
+@@ -26,7 +26,7 @@ def test_send_email_with_link_to_download_file(
+     # then
+     template = emails.EXPORT_TEMPLATES["export_products_success"]
+     ctx = {
+-        "csv_link": f"http://mirumee.com/media/export_files/{file_mock.name}",
++        "csv_link": f"http://mirumee.com/media/mirumee.com/export_files/{file_mock.name}",
+         "domain": "mirumee.com",
+         "site_name": "mirumee.com",
+     }
+diff --git a/saleor/graphql/account/tests/test_account.py b/saleor/graphql/account/tests/test_account.py
+index 21bdf676c..bef848f54 100644
+--- a/saleor/graphql/account/tests/test_account.py
++++ b/saleor/graphql/account/tests/test_account.py
+@@ -3361,7 +3361,7 @@ def test_user_avatar_update_mutation(monkeypatch, staff_api_client, media_root):
+
+     assert user.avatar
+     assert data["user"]["avatar"]["url"].startswith(
+-        "http://testserver/media/user-avatars/avatar"
++        "http://mirumee.com/media/mirumee.com/user-avatars/avatar"
+     )
+
+     # The image creation should have triggered a warm-up
+@@ -3388,7 +3388,7 @@ def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
+
+     assert user.avatar != avatar_mock
+     assert data["user"]["avatar"]["url"].startswith(
+-        "http://testserver/media/user-avatars/new_image"
++        "http://mirumee.com/media/mirumee.com/user-avatars/new_image"
+     )
+
+

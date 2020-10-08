@@ -51,13 +51,6 @@ if AWS_MEDIA_BUCKET_NAME:
     DEFAULT_FILE_STORAGE = "tenants.storages.TenantS3MediaStorage"
 
 
-GRAPHQL_JWT = {
-    **GRAPHQL_JWT,
-    "JWT_ENCODE_HANDLER": "tenants.jwt.jwt_encode",
-    "JWT_DECODE_HANDLER": "tenants.jwt.jwt_decode",
-    "JWT_PAYLOAD_HANDLER": "tenants.jwt.jwt_payload",
-}
-
 # Celery SQS
 
 CELERY_QUEUE_PREFIX = os.environ.get("CELERY_QUEUE_PREFIX", None)

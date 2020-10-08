@@ -3,6 +3,7 @@ from django.db.backends.postgresql.creation import (
     DatabaseCreation as BaseDatabaseCreation,
 )
 from django.db.models import Model
+from django.db import connection
 from tenant_schemas.utils import get_tenant_model
 
 # The site_settings fixture is blocking us from using other extension than `.com`
@@ -77,4 +78,7 @@ class DatabaseCreation(BaseDatabaseCreation):
             serialize=serialize,
             keepdb=keepdb,
         )
+        cursor = connection.cursor()
+        cursor.execute('CREATE EXTENSION IF NOT EXISTS hstore')
+        cursor.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm')
         self._create_test_tenants()

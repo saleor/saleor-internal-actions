@@ -1,0 +1,188 @@
+diff --git a/conftest.py b/conftest.py
+index 9773d9e71..50bfd1a07 100644
+--- a/conftest.py
++++ b/conftest.py
+@@ -1,5 +1,69 @@
++import pytest
++from django.db import connection
++from tenant_schemas.utils import get_tenant_model
++from tenants.postgresql_backend.creation import DEFAULT_TEST_TENANT, OTHER_TEST_TENANT
++from tenants.test.client import TenantClient
++
++
+ pytest_plugins = [
+     "saleor.tests.fixtures",
+     "saleor.plugins.tests.fixtures",
+     "saleor.graphql.tests.fixtures",
++    "pytester"
+ ]
++
++
++def pytest_configure(config):
++    """Flags python as being running inside a test suite.
++
++    Pattern from https://is.gd/hXRqGq (pytest documentation).
++    Needed by `tenants.management.commands.migrate`.
++    """
++    import sys
++
++    sys._called_from_test = True
++
++
++def pytest_unconfigure(config):
++    """Un-flags python as being running inside a test suite."""
++    import sys
++
++    del sys._called_from_test
++
++
++@pytest.fixture
++def tenant_connection_keeper(test_tenant):
++    """
++    Restore the tenant connection once the wrapped test is over.
++    Useful when a test or the app changed the tenant connection schema.
++    """
++    yield
++    connection.set_tenant(test_tenant)
++
++
++@pytest.fixture
++def test_tenant(db):
++    return get_tenant_model().objects.get(**DEFAULT_TEST_TENANT)
++
++
++@pytest.fixture
++def other_tenant(db):
++    return get_tenant_model().objects.get(**OTHER_TEST_TENANT)
++
++
++@pytest.fixture
++def client(test_tenant):
++    yield TenantClient(test_tenant)
++
++
++@pytest.fixture
++def other_client(other_tenant):
++    yield TenantClient(other_tenant)
++
++
++@pytest.fixture
++def admin_client(test_tenant, admin_user):
++    """Return a Django test client logged in as an admin user."""
++    client = TenantClient(test_tenant)
++    client.login(username=admin_user.email, password="password")
++    return client
+diff --git a/saleor/graphql/tests/fixtures.py b/saleor/graphql/tests/fixtures.py
+index 422233910..9d1e50617 100644
+--- a/saleor/graphql/tests/fixtures.py
++++ b/saleor/graphql/tests/fixtures.py
+@@ -13,6 +13,7 @@ from ...core.jwt import create_access_token
+ from ...tests.utils import flush_post_commit_hooks
+ from ..views import handled_errors_logger, unhandled_errors_logger
+ from .utils import assert_no_permission
++from tenants.test.client import TenantClient
+ 
+ API_PATH = reverse("api")
+ ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin"
+@@ -21,10 +22,11 @@ ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
+ ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods"
+ 
+ 
+-class ApiClient(Client):
++class TenantApiClient(TenantClient):
+     """GraphQL API client."""
+ 
+     def __init__(self, *args, **kwargs):
++        super().__init__(*args, **kwargs)
+         user = kwargs.pop("user", AnonymousUser())
+         app = kwargs.pop("app", None)
+         self._user = None
+@@ -32,12 +34,9 @@ class ApiClient(Client):
+         self.user = user
+         self.app_token = None
+         self.app = app
+-        if not user.is_anonymous:
+-            self.token = create_access_token(user)
+-        elif app:
++        if app:
+             token = app.tokens.first()
+             self.app_token = token.auth_token if token else None
+-        super().__init__(*args, **kwargs)
+ 
+     def _base_environ(self, **request):
+         environ = super()._base_environ(**request)
+@@ -117,28 +116,33 @@ class ApiClient(Client):
+ 
+ 
+ @pytest.fixture
+-def app_api_client(app):
+-    return ApiClient(app=app)
++def app_api_client(test_tenant, app):
++    return TenantApiClient(test_tenant, app=app)
++
++
++@pytest.fixture
++def staff_api_client(test_tenant, staff_user):
++    return TenantApiClient(test_tenant, user=staff_user)
+ 
+ 
+ @pytest.fixture
+-def staff_api_client(staff_user):
+-    return ApiClient(user=staff_user)
++def superuser_api_client(test_tenant, superuser):
++    return TenantApiClient(test_tenant, user=superuser)
+ 
+ 
+ @pytest.fixture
+-def superuser_api_client(superuser):
+-    return ApiClient(user=superuser)
++def user_api_client(test_tenant, customer_user):
++    return TenantApiClient(test_tenant, user=customer_user)
+ 
+ 
+ @pytest.fixture
+-def user_api_client(customer_user):
+-    return ApiClient(user=customer_user)
++def api_client(test_tenant):
++    return TenantApiClient(test_tenant, user=AnonymousUser())
+ 
+ 
+ @pytest.fixture
+-def api_client():
+-    return ApiClient(user=AnonymousUser())
++def other_tenant_api_client(other_tenant):
++    return TenantApiClient(other_tenant, user=AnonymousUser)
+ 
+ 
+ @pytest.fixture
+diff --git a/saleor/tests/fixtures.py b/saleor/tests/fixtures.py
+index a21531f64..ed4c604aa 100644
+--- a/saleor/tests/fixtures.py
++++ b/saleor/tests/fixtures.py
+@@ -211,12 +211,13 @@ def site_settings(db, settings) -> SiteSettings:
+     saleor.site.models.SiteSettings have a one-to-one relationship and a site
+     should never exist without a matching settings object.
+     """
+-    site = Site.objects.get_or_create(name="mirumee.com", domain="mirumee.com")[0]
++    site = Site.objects.get_or_create(domain="mirumee.com")[0]
++    site.name = "mirumee.com"
++    site.save()
+     obj = SiteSettings.objects.get_or_create(
+-        site=site,
+-        default_mail_sender_name="Mirumee Labs",
+-        default_mail_sender_address="mirumee@example.com",
++        site=site
+     )[0]
++
+     settings.SITE_ID = site.pk
+ 
+     main_menu = Menu.objects.get_or_create(
+@@ -227,6 +228,8 @@ def site_settings(db, settings) -> SiteSettings:
+     )[0]
+     obj.top_menu = main_menu
+     obj.bottom_menu = secondary_menu
++    obj.default_mail_sender_name = "Mirumee Labs"
++    obj.default_mail_sender_address = "mirumee@example.com"
+     obj.save()
+     return obj
+ 

@@ -1,23 +1,23 @@
 diff --git a/saleor/celeryconf.py b/saleor/celeryconf.py
-index 0aa519bca..41bc230cf 100644
+index 997845518..db121232a 100644
 --- a/saleor/celeryconf.py
 +++ b/saleor/celeryconf.py
-@@ -1,13 +1,14 @@
+@@ -1,13 +1,13 @@
  import os
-
+ 
 -from celery import Celery
  from django.conf import settings
 +from tenant_schemas_celery.app import CeleryApp
-
+ 
  from .plugins import discover_plugins_modules
-
-+
+ 
  os.environ.setdefault("DJANGO_SETTINGS_MODULE", "saleor.settings")
-
+ 
 -app = Celery("saleor")
 +app = CeleryApp("saleor")
-
- CELERY_TIMEZONE = "UTC"
+ 
+ app.config_from_object("django.conf:settings", namespace="CELERY")
+ app.autodiscover_tasks()
 
 diff --git a/saleor/site/patch_sites.py b/saleor/site/patch_sites.py
 index 87ad22b3f..f01f68031 100644
