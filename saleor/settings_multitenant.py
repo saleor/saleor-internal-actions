@@ -24,10 +24,21 @@ INSTALLED_APPS = [
     "tenant_schemas",
     "django_ses",
     "django_version",
+    "django_prometheus",
     *TENANT_APPS,
 ]
 
-MIDDLEWARE = ["tenants.middleware.SaleorTenantMiddleware"] + MIDDLEWARE
+MIDDLEWARE = (
+    [
+        "django_prometheus.middleware.PrometheusBeforeMiddleware",
+        "tenants.middleware.SaleorTenantMiddleware",
+    ]
+    + MIDDLEWARE
+    + ["django_prometheus.middleware.PrometheusAfterMiddleware"]
+)
+
+ROOT_URLCONF = "saleor.urls_prometheus_wrapper"
+PROMETHEUS_EXPORT_MIGRATIONS = False
 
 DATABASE_ROUTERS = ("tenant_schemas.routers.TenantSyncRouter",)
 DATABASES = {
