@@ -1,12 +1,12 @@
 import logging
+import subprocess
+import urllib.parse
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
-from typing import Set
 
 import boto3
 from boto3_type_annotations.s3 import Client
-from django.core.management import CommandError
-from django.core.management.commands.dumpdata import Command as BaseDumpDataCommand
+from django.core.management import BaseCommand, CommandError
 from django.db import connection
 
 from tenants.management.argparse import (
@@ -21,11 +21,8 @@ from tenants.management.media_manager import MediaManager
 logger = logging.getLogger(__name__)
 
 
-class Command(BaseDumpDataCommand):
-    help = (
-        "Dump the contents of a tenant's database to JSON format "
-        "(using each model's default manager unless --all is specified)."
-    )
+class Command(BaseCommand):
+    help = "Dump the contents of a tenant's database to SQL format"
     epilog = """\
 LOCATION
 \t-\tA local absolute or relative path.
@@ -39,8 +36,6 @@ EXAMPLES OF VALID S3 LOCATIONS
 
 ENVIRONMENT VARIABLES:
 \t-\tDEFAULT_BACKUP_BUCKET_NAME: the default bucket name."""
-
-    DEFAULT_EXCLUDE_LIST: Set[str] = {"tenants"}
 
     def add_arguments(self, parser: ArgumentParser, add_location_arg=True):
         super().add_arguments(parser)
@@ -65,17 +60,6 @@ ENVIRONMENT VARIABLES:
                 "giving the best ratio of compression ratio vs CPU time"
             ),
         )
-        parser.add_argument(
-            "--restrict",
-            action="append",
-            dest="app_labels",
-            metavar="app_label[.ModelName]",
-            help=(
-                "Restricts dumped data to the specified app_label "
-                "or app_label.ModelName."
-            ),
-            default=[],
-        )
         parser.set_defaults(indent=2)
 
     @staticmethod
@@ -84,31 +68,51 @@ ENVIRONMENT VARIABLES:
         with open(from_path, mode="rb") as fp:
             s3_client.put_object(Body=fp, ContentType="application/x-gzip", **opts)
 
-    def _run_django_dump_data(self, *app_labels, **options):
-        return super().handle(*app_labels, **options)
+    @staticmethod
+    def _run_dump_data(schema_name, target):
+        logger.info("Dumping database...")
+        db_info = connection.connection.info
+        constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
+        subprocess.check_call(
+            [
+                "pg_dump",
+                "-n",
+                schema_name,
+                "-f",
+                target,
+                "--quote-all-identifiers",
+                constr,
+            ]
+        )
+        logger.info("Done!")
 
-    def _run_media_backup(self, media_dir):
+    @staticmethod
+    def _run_media_backup(media_dir):
+        logger.info("Downloading media...")
         MediaManager(media_dir).download()
+        logger.info("Done!")
 
-    def handle(self, app_labels, location: LOCATION_TYPE, compression_level, **options):
+    def handle(self, location: LOCATION_TYPE, compression_level, **options):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
 
-        options["exclude"] = set(options["exclude"]) | self.DEFAULT_EXCLUDE_LIST
         save_path = location if isinstance(location, Path) else None
 
         with TenantDump() as archive:
             prev_include_public = connection.include_public_schema
             connection.set_tenant(connection.tenant, include_public=False)
-
-            options["output"] = archive.schema_path
+            schema_name = connection.tenant.schema_name
 
             try:
-                self._run_django_dump_data(*app_labels, **options)
+                self._run_dump_data(schema_name=schema_name, target=archive.schema_path)
                 self._run_media_backup(archive.media_dir)
+                archive.add_metadata(
+                    schema_name=schema_name, domain=connection.tenant.domain_url
+                )
             finally:
                 connection.set_tenant(connection.tenant, prev_include_public)
 
+            logger.info("Compressing the backup...")
             archive.compress_all(archive_path=save_path, level=compression_level)
 
             if save_path is not None:

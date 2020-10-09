@@ -13,7 +13,8 @@ RUN apt-get update \
     libssl-dev \
     python-psycopg2 \
     python-pycurl \
-    python-dev
+    python-dev \
+    postgresql-client
 
 ARG VERSION
 ENV PROJECT_VERSION $VERSION

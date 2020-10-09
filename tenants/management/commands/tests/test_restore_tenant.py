@@ -14,7 +14,7 @@ CMD = "restore_tenant"
 
 @pytest.fixture
 def mocked_run_restore():
-    with mock.patch.object(restore_tenant.Command, "_run_django_load_data") as mocked:
+    with mock.patch.object(restore_tenant.Command, "_run_load_data") as mocked:
         yield mocked
 
 
@@ -42,6 +42,7 @@ def test_restore_from_bucket(
     archive_path,
     temporary_working_directory,
     temporary_raw_schema_path,
+    temporary_raw_metadata_path,
     logs,
 ):
     BUCKET_NAME = "tenants_dumps"
@@ -59,20 +60,30 @@ def test_restore_from_bucket(
     mocked_run_restore.assert_called_once()
 
     call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (temporary_raw_schema_path,)
+    assert call_args == (
+        temporary_raw_schema_path,
+        temporary_raw_metadata_path,
+        test_tenant.schema_name,
+    )
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
     )
 
-    temporary_raw_schema_path.check()
+    temporary_working_directory.check()
 
     assert logs.messages == [
+        "INFO:Dumping database...",
+        "INFO:Done!",
+        "INFO:Downloading media...",
+        "INFO:Done!",
+        "INFO:Compressing the backup...",
         f"INFO:Created archive at: {str(archive_path)}",
         f"INFO:Uploading archive to s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Retrieving archive from s3://tenants_dumps/tenant_backup.tar.gz...",
-        f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
+        f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
     ]
 
@@ -86,6 +97,7 @@ def test_restore_from_local_file(
     test_tenant,
     temporary_working_directory,
     temporary_raw_schema_path,
+    temporary_raw_metadata_path,
     logs,
 ):
     wanted_archive_path = testdir.tmpdir.join(f"backup.tar.gz")
@@ -97,18 +109,28 @@ def test_restore_from_local_file(
     mocked_run_restore.assert_called_once()
 
     call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (temporary_raw_schema_path,)
+    assert call_args == (
+        temporary_raw_schema_path,
+        temporary_raw_metadata_path,
+        test_tenant.schema_name,
+    )
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
     )
 
-    temporary_raw_schema_path.check()
+    temporary_working_directory.check()
 
     assert logs.messages == [
+        "INFO:Dumping database...",
+        "INFO:Done!",
+        "INFO:Downloading media...",
+        "INFO:Done!",
+        "INFO:Compressing the backup...",
         f"INFO:Created archive at: {str(wanted_archive_path)}",
-        f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
+        f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
     ]
 
@@ -124,6 +146,7 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     test_tenant,
     temporary_working_directory,
     temporary_raw_schema_path,
+    temporary_raw_metadata_path,
     logs,
 ):
     mocked_site = mocked_site.return_value
@@ -138,18 +161,28 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     mocked_run_restore.assert_called_once()
 
     call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (temporary_raw_schema_path,)
+    assert call_args == (
+        temporary_raw_schema_path,
+        temporary_raw_metadata_path,
+        test_tenant.schema_name,
+    )
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
     )
 
-    temporary_raw_schema_path.check()
+    temporary_working_directory.check()
 
     assert logs.messages == [
+        "INFO:Dumping database...",
+        "INFO:Done!",
+        "INFO:Downloading media...",
+        "INFO:Done!",
+        "INFO:Compressing the backup...",
         f"INFO:Created archive at: {str(wanted_archive_path)}",
-        f"INFO:Extracting schema.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
+        f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
         f"INFO:Updating outdated site domain...",
     ]

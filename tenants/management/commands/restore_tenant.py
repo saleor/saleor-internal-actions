@@ -1,5 +1,8 @@
 import io
 import logging
+import json
+import subprocess
+import urllib.parse
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
@@ -7,8 +10,7 @@ from typing import Any, Dict, Optional, Set
 import boto3
 from boto3_type_annotations.s3 import Client
 from django.contrib.sites.models import Site
-from django.core.management import call_command, CommandError
-from django.core.management.commands.loaddata import Command as BaseLoadDataCommand
+from django.core.management import call_command, CommandError, BaseCommand
 from django.db import connection
 
 from tenants.management.argparse import (
@@ -25,12 +27,10 @@ from . import backup_tenant
 logger = logging.getLogger(__name__)
 
 
-class Command(BaseLoadDataCommand):
-    help = "Restore the database contents of a tenant's JSON dump."
+class Command(BaseCommand):
+    help = "Restore the database contents of a tenant's SQL dump."
     missing_args_message = None
     epilog = backup_tenant.Command.epilog
-
-    DEFAULT_EXCLUDE_LIST: Set[str] = {"tenants"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,8 +88,49 @@ class Command(BaseLoadDataCommand):
             self._manager.stop()
             raise exc
 
-    def _run_django_load_data(self, *dump_paths, **options):
-        return super().handle(*dump_paths, **options)
+    def _replace_dump_schema(self, dump: str, source_schema: str, target_schema: str):
+        logger.info(f"Replacing schema name in backup: {source_schema} -> {target_schema}")
+        dump = f'DROP SCHEMA IF EXISTS "{target_schema}" CASCADE;\n' + dump
+
+        replaceable = [
+            'CREATE SCHEMA "{schema_name}"',
+            'ALTER SCHEMA "{schema_name}"',
+            'CREATE TABLE "{schema_name}".',
+            'OWNED BY "{schema_name}".',
+            'SET DEFAULT "nextval"(\'"{schema_name}".',
+            'COPY "{schema_name}".',
+            'pg_catalog.setval(\'"{schema_name}".',
+            'ON "{schema_name}".',
+            'CREATE SEQUENCE "{schema_name}".',
+            'ALTER SEQUENCE "{schema_name}".',
+            'ALTER TABLE "{schema_name}".',
+            'ALTER TABLE ONLY "{schema_name}".',
+            'REFERENCES "{schema_name}".',
+        ]
+        for r in replaceable:
+            dump = dump.replace(
+                r.format(schema_name=source_schema), r.format(schema_name=target_schema)
+            )
+        return dump
+
+    def _run_load_data(self, dump_path: str, metadata_path: str, target_schema: str):
+        logger.info("Loading backup...")
+        with open(metadata_path) as meta_fh:
+            meta = json.load(meta_fh)
+            source_schema = meta["schema_name"]
+        with open(dump_path) as dump_fh:
+            dump = dump_fh.read()
+        dump = self._replace_dump_schema(dump, source_schema, target_schema)
+        with open(dump_path, "wt") as dump_fh:
+            dump_fh.write(dump)
+
+        logger.info("Executing SQL script with a backup...")
+        db_info = connection.connection.info
+        constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
+        subprocess.check_call(["psql", "-f", dump_path, constr])
+        logger.info("Done!")
+        logger.info("Running migrations...")
+        call_command("migrate_schemas", schema_name=target_schema)
 
     def _run_media_restore(self):
         MediaManager(self._manager.media_dir).upload()
@@ -99,13 +140,14 @@ class Command(BaseLoadDataCommand):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
 
-        options = self.super_cmd_options
         dump_path = str(self._manager.schema_path)
+        metadata_path = str(self._manager.metadata_path)
         domain = connection.tenant.domain_url
+        target_schema = connection.tenant.schema_name
 
         try:
             logger.info("Restoring the data...")
-            self._run_django_load_data(dump_path, **options)
+            self._run_load_data(dump_path, metadata_path, target_schema)
             self._run_media_restore()
 
             site: Site = Site.objects.get()

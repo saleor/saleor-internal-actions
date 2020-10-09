@@ -47,6 +47,9 @@ class Command(restore_tenant.Command):
 
         if restore_from_location:
             connection.set_tenant(tenant)
+            # That's a hax, without querying for Tenant object we have no access to
+            # database connection details required later for connecting psql
+            tenant = Tenant.objects.get(domain_url=domain_url, schema_name=schema_name)
             try:
                 self.run_restore()
             except Exception as exc:

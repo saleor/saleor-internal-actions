@@ -34,7 +34,12 @@ def temporary_working_directory(testdir):
 
 @pytest.fixture()
 def temporary_raw_schema_path(temporary_working_directory):
-    return temporary_working_directory.join("schema.json")
+    return temporary_working_directory.join("schema.sql")
+
+
+@pytest.fixture()
+def temporary_raw_metadata_path(temporary_working_directory):
+    return temporary_working_directory.join("metadata.json")
 
 
 @pytest.fixture()

@@ -1,6 +1,8 @@
 import logging
 import shutil
 import tempfile
+import json
+import os
 from pathlib import Path
 from tarfile import TarFile
 from typing import IO, Optional, Union
@@ -13,7 +15,8 @@ class TenantDump:
     DEFAULT_COMPRESSION_LEVEL = 6
     IGNORE_ERRS_RMTREE = True
     MEDIA_DIRNAME = "media"
-    SCHEMA_DATA_FILENAME = "schema.json"
+    SCHEMA_DATA_FILENAME = "schema.sql"
+    METADATA_FILENAME = "metadata.json"
 
     def __init__(self, *, temp_working_directory: Optional[Path] = None):
         self._temp_working_directory: Optional[Path] = temp_working_directory
@@ -34,6 +37,10 @@ class TenantDump:
         return self.temp_working_directory / self.SCHEMA_DATA_FILENAME
 
     @property
+    def metadata_path(self):
+        return self.temp_working_directory / self.METADATA_FILENAME
+
+    @property
     def media_dir(self):
         return self.temp_working_directory / self.MEDIA_DIRNAME
 
@@ -45,6 +52,19 @@ class TenantDump:
             self.temp_working_directory, ignore_errors=self.IGNORE_ERRS_RMTREE
         )
 
+    def add_metadata(self, **kwargs):
+        if os.path.exists(self.metadata_path):
+            with open(self.metadata_path) as f:
+                current_meta = json.load(f)
+        else:
+            current_meta = {}
+
+        for k, v in kwargs.items():
+            current_meta[k] = v
+
+        with open(self.metadata_path, "wt") as f:
+            json.dump(current_meta, f)
+
     def compress_all(
         self, archive_path: Optional[str] = None, level: int = DEFAULT_COMPRESSION_LEVEL
     ):
@@ -54,6 +74,7 @@ class TenantDump:
         ) as archive:
             archive.add(name=self.schema_path, arcname=self.SCHEMA_DATA_FILENAME)
             archive.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
+            archive.add(name=self.metadata_path, arcname=self.METADATA_FILENAME)
         logger.info("Created archive at: %s", archive_path)
 
     def decompress_all(
