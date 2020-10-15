@@ -65,6 +65,10 @@ class TenantDump:
         with open(self.metadata_path, "wt") as f:
             json.dump(current_meta, f)
 
+    def get_metadata(self):
+        with open(self.metadata_path) as f:
+            return json.load(f)
+
     def compress_all(
         self, archive_path: Optional[str] = None, level: int = DEFAULT_COMPRESSION_LEVEL
     ):

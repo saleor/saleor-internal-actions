@@ -30,6 +30,7 @@ jobs:
                     "${repo}:${version}"
                     "${repo}:${version}-${hash}")
             else
+              branch=$(echo $branch | sed 's@/@_@g')
               tags=("${repo}:${version}-${hash}-${branch}")
             fi
             $(aws ecr get-login --no-include-email)

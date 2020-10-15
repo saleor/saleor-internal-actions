@@ -59,13 +59,6 @@ def test_restore_from_bucket(
 
     mocked_run_restore.assert_called_once()
 
-    call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (
-        temporary_raw_schema_path,
-        temporary_raw_metadata_path,
-        test_tenant.schema_name,
-    )
-
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
     )
@@ -107,13 +100,6 @@ def test_restore_from_local_file(
         call_command(CMD, wanted_archive_path)
 
     mocked_run_restore.assert_called_once()
-
-    call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (
-        temporary_raw_schema_path,
-        temporary_raw_metadata_path,
-        test_tenant.schema_name,
-    )
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
@@ -159,13 +145,6 @@ def test_restore_updates_site_domain_when_domain_is_changed(
         call_command(CMD, wanted_archive_path)
 
     mocked_run_restore.assert_called_once()
-
-    call_args, call_kwargs = mocked_run_restore.call_args
-    assert call_args == (
-        temporary_raw_schema_path,
-        temporary_raw_metadata_path,
-        test_tenant.schema_name,
-    )
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True

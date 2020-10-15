@@ -1,3 +1,4 @@
+from django.db import connection
 from tenant_schemas.management.commands.migrate_schemas import (
     Command as MigrateSchemasCommand,
 )

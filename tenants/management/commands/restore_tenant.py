@@ -1,6 +1,5 @@
 import io
 import logging
-import json
 import subprocess
 import urllib.parse
 from argparse import ArgumentParser, RawTextHelpFormatter
@@ -23,6 +22,8 @@ from tenants.management.argparse import (
 from ..gzip_dump_manager import TenantDump
 from ..media_manager import MediaManager
 from . import backup_tenant
+from ..sql_dump_manager import SqlManager
+from ...utils import preserve_tenant, assure_connection_initialized
 
 logger = logging.getLogger(__name__)
 
@@ -88,73 +89,54 @@ class Command(BaseCommand):
             self._manager.stop()
             raise exc
 
-    def _replace_dump_schema(self, dump: str, source_schema: str, target_schema: str):
-        logger.info(f"Replacing schema name in backup: {source_schema} -> {target_schema}")
-        dump = f'DROP SCHEMA IF EXISTS "{target_schema}" CASCADE;\n' + dump
+    @preserve_tenant
+    @assure_connection_initialized
+    def _run_load_data(self):
+        metadata = self._manager.get_metadata()
+        source_schema = metadata["schema_name"]
+        target_schema = connection.tenant.schema_name
 
-        replaceable = [
-            'CREATE SCHEMA "{schema_name}"',
-            'ALTER SCHEMA "{schema_name}"',
-            'CREATE TABLE "{schema_name}".',
-            'OWNED BY "{schema_name}".',
-            'SET DEFAULT "nextval"(\'"{schema_name}".',
-            'COPY "{schema_name}".',
-            'pg_catalog.setval(\'"{schema_name}".',
-            'ON "{schema_name}".',
-            'CREATE SEQUENCE "{schema_name}".',
-            'ALTER SEQUENCE "{schema_name}".',
-            'ALTER TABLE "{schema_name}".',
-            'ALTER TABLE ONLY "{schema_name}".',
-            'REFERENCES "{schema_name}".',
-        ]
-        for r in replaceable:
-            dump = dump.replace(
-                r.format(schema_name=source_schema), r.format(schema_name=target_schema)
-            )
-        return dump
-
-    def _run_load_data(self, dump_path: str, metadata_path: str, target_schema: str):
         logger.info("Loading backup...")
-        with open(metadata_path) as meta_fh:
-            meta = json.load(meta_fh)
-            source_schema = meta["schema_name"]
-        with open(dump_path) as dump_fh:
-            dump = dump_fh.read()
-        dump = self._replace_dump_schema(dump, source_schema, target_schema)
-        with open(dump_path, "wt") as dump_fh:
-            dump_fh.write(dump)
+        sql_dump = SqlManager(self._manager.schema_path)
+
+        logger.info(
+            f"Replacing schema name in backup: {source_schema} -> {target_schema}"
+        )
+        sql_dump.update(source_schema, target_schema)
 
         logger.info("Executing SQL script with a backup...")
         db_info = connection.connection.info
         constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
-        subprocess.check_call(["psql", "-f", dump_path, constr])
+        subprocess.check_call(["psql", "-f", sql_dump.sql_dump_filename, constr])
         logger.info("Done!")
+
         logger.info("Running migrations...")
-        call_command("migrate_schemas", schema_name=target_schema)
+        call_command("migrate_schemas", schema_name=connection.tenant.schema_name)
 
     def _run_media_restore(self):
         MediaManager(self._manager.media_dir).upload()
         call_command("create_thumbnails")
 
-    def run_restore(self):
+    @staticmethod
+    def _update_tenant_site_domain():
+        domain = connection.tenant.domain_url
+        site: Site = Site.objects.get()
+        if site.domain != domain:
+            logger.info("Updating outdated site domain...")
+            site.domain = domain
+            site.save(update_fields=["domain"])
+
+    def run_restore(self, skip_media=False):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
 
-        dump_path = str(self._manager.schema_path)
-        metadata_path = str(self._manager.metadata_path)
-        domain = connection.tenant.domain_url
-        target_schema = connection.tenant.schema_name
-
         try:
             logger.info("Restoring the data...")
-            self._run_load_data(dump_path, metadata_path, target_schema)
-            self._run_media_restore()
+            self._run_load_data()
+            if not skip_media:
+                self._run_media_restore()
 
-            site: Site = Site.objects.get()
-            if site.domain != domain:
-                logger.info("Updating outdated site domain...")
-                site.domain = domain
-                site.save(update_fields=["domain"])
+            self._update_tenant_site_domain()
         finally:
             self._manager.stop()
 
