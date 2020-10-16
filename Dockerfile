@@ -1,4 +1,4 @@
-ARG VERSION="2.11.0-rc.7"
+ARG VERSION="2.11.0-rc.8"
 FROM mirumee/saleor:${VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
