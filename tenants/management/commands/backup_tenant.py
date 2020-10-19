@@ -60,7 +60,6 @@ ENVIRONMENT VARIABLES:
                 "giving the best ratio of compression ratio vs CPU time"
             ),
         )
-        parser.set_defaults(indent=2)
 
     @staticmethod
     def _upload(from_path: Path, *, opts: S3Options):
