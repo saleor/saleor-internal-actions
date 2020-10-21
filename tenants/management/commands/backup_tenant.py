@@ -17,6 +17,7 @@ from tenants.management.argparse import (
 )
 from tenants.management.gzip_dump_manager import TenantDump
 from tenants.management.media_manager import MediaManager
+from tenants.utils import assure_connection_initialized
 
 logger = logging.getLogger(__name__)
 
@@ -68,24 +69,6 @@ ENVIRONMENT VARIABLES:
             s3_client.put_object(Body=fp, ContentType="application/x-gzip", **opts)
 
     @staticmethod
-    def _run_dump_data(schema_name, target):
-        logger.info("Dumping database...")
-        db_info = connection.connection.info
-        constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
-        subprocess.check_call(
-            [
-                "pg_dump",
-                "-n",
-                schema_name,
-                "-f",
-                target,
-                "--quote-all-identifiers",
-                constr,
-            ]
-        )
-        logger.info("Done!")
-
-    @staticmethod
     def _run_media_backup(media_dir):
         logger.info("Downloading media...")
         MediaManager(media_dir).download()
@@ -103,7 +86,7 @@ ENVIRONMENT VARIABLES:
             schema_name = connection.tenant.schema_name
 
             try:
-                self._run_dump_data(schema_name=schema_name, target=archive.schema_path)
+                run_dump_data(schema_name=schema_name, target=archive.schema_path)
                 self._run_media_backup(archive.media_dir)
                 archive.add_metadata(
                     schema_name=schema_name, domain=connection.tenant.domain_url
@@ -120,3 +103,22 @@ ENVIRONMENT VARIABLES:
             if isinstance(location, S3Options):
                 logger.info(f"Uploading archive to {location}...")
                 self._upload(archive.get_archive_path(), opts=location)
+
+
+@assure_connection_initialized
+def run_dump_data(schema_name, target):
+    logger.info("Dumping database...")
+    db_info = connection.connection.info
+    constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
+    subprocess.check_call(
+        [
+            "pg_dump",
+            "-n",
+            schema_name,
+            "-f",
+            target,
+            "--quote-all-identifiers",
+            constr,
+        ]
+    )
+    logger.info("Done!")

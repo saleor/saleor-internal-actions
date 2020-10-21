@@ -21,7 +21,7 @@ CMD = "backup_tenant"
 @pytest.fixture
 def mocked_dump():
     """Prevent from running the dump when we don't need to as it is a heavy process."""
-    with mock.patch.object(backup_tenant.Command, "_run_dump_data") as patched:
+    with mock.patch.object(backup_tenant, "run_dump_data") as patched:
         yield patched
 
 

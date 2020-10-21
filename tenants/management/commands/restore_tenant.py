@@ -89,27 +89,36 @@ class Command(BaseCommand):
             self._manager.stop()
             raise exc
 
-    @preserve_tenant
-    @assure_connection_initialized
     def _run_load_data(self):
         metadata = self._manager.get_metadata()
+        sql_dump_filename = self._manager.schema_path
         source_schema = metadata["schema_name"]
         target_schema = connection.tenant.schema_name
 
         logger.info("Loading backup...")
-        sql_dump = SqlManager(self._manager.schema_path)
+        sql_dump = SqlManager(sql_dump_filename)
 
         logger.info(
             f"Replacing schema name in backup: {source_schema} -> {target_schema}"
         )
         sql_dump.update(source_schema, target_schema)
 
+        self._drop_schema(target_schema)
+        self._execute_sql_dump(sql_dump_filename)
+
+    @staticmethod
+    def _drop_schema(schema_name):
+        cursor = connection.cursor()
+        cursor.execute(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE")
+
+    @preserve_tenant
+    @assure_connection_initialized
+    def _execute_sql_dump(self, sql_dump_filename):
         logger.info("Executing SQL script with a backup...")
         db_info = connection.connection.info
         constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
-        subprocess.check_call(["psql", "-f", sql_dump.sql_dump_filename, constr])
+        subprocess.check_call(["psql", "-f", sql_dump_filename, constr])
         logger.info("Done!")
-
         logger.info("Running migrations...")
         call_command("migrate_schemas", schema_name=connection.tenant.schema_name)
 

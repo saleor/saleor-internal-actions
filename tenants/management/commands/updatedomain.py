@@ -12,9 +12,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "current_domain", type=str, help="Current tenant domain url"
         )
-        parser.add_argument(
-            "new_domain", type=str, help="New tenant domain url"
-        )
+        parser.add_argument("new_domain", type=str, help="New tenant domain url")
 
     def handle(self, *args, current_domain: str, new_domain: str, **options):
         try:

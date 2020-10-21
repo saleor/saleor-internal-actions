@@ -11,8 +11,6 @@ class SqlManager:
 
     @staticmethod
     def _replace_dump_schema(dump: str, source_schema: str, target_schema: str):
-        dump = f'DROP SCHEMA IF EXISTS "{target_schema}" CASCADE;\n' + dump
-
         replaceable = [
             'CREATE SCHEMA "{schema_name}"',
             'ALTER SCHEMA "{schema_name}"',

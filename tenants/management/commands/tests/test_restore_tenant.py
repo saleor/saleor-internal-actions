@@ -7,7 +7,6 @@ from boto3_type_annotations import s3
 from django.core.management import call_command, CommandError
 from moto import mock_s3
 from tenants.management.commands import restore_tenant
-from .test_backup_tenant import CMD as backup_cmd
 
 CMD = "restore_tenant"
 
@@ -34,7 +33,7 @@ def test_location_required(test_tenant):
 
 @mock_s3
 def test_restore_from_bucket(
-    tenant_connection_keeper,
+    backup_archive_path,
     mocked_run_restore,
     mock_directory_output,
     mocked_media_list,
@@ -50,9 +49,13 @@ def test_restore_from_bucket(
 
     connection: s3.Client = boto3.client("s3")
     connection.create_bucket(Bucket=BUCKET_NAME)
-
+    connection.upload_file(
+        backup_archive_path,
+        BUCKET_NAME,
+        FILENAME,
+        ExtraArgs={"ContentType": "application/x-gzip"},
+    )
     s3_location = f"s3://{BUCKET_NAME}/{FILENAME}"
-    call_command(backup_cmd, s3_location)
 
     with mock.patch("shutil.rmtree") as mocked_rmtree:
         call_command(CMD, s3_location)
@@ -66,13 +69,6 @@ def test_restore_from_bucket(
     temporary_working_directory.check()
 
     assert logs.messages == [
-        "INFO:Dumping database...",
-        "INFO:Done!",
-        "INFO:Downloading media...",
-        "INFO:Done!",
-        "INFO:Compressing the backup...",
-        f"INFO:Created archive at: {str(archive_path)}",
-        f"INFO:Uploading archive to s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Retrieving archive from s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
@@ -82,7 +78,7 @@ def test_restore_from_bucket(
 
 
 def test_restore_from_local_file(
-    tenant_connection_keeper,
+    backup_archive_path,
     testdir,
     mocked_run_restore,
     mock_directory_output,
@@ -93,11 +89,8 @@ def test_restore_from_local_file(
     temporary_raw_metadata_path,
     logs,
 ):
-    wanted_archive_path = testdir.tmpdir.join(f"backup.tar.gz")
-    call_command(backup_cmd, wanted_archive_path)
-
     with mock.patch("shutil.rmtree") as mocked_rmtree:
-        call_command(CMD, wanted_archive_path)
+        call_command(CMD, backup_archive_path)
 
     mocked_run_restore.assert_called_once()
 
@@ -108,12 +101,6 @@ def test_restore_from_local_file(
     temporary_working_directory.check()
 
     assert logs.messages == [
-        "INFO:Dumping database...",
-        "INFO:Done!",
-        "INFO:Downloading media...",
-        "INFO:Done!",
-        "INFO:Compressing the backup...",
-        f"INFO:Created archive at: {str(wanted_archive_path)}",
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
@@ -124,7 +111,7 @@ def test_restore_from_local_file(
 @mock.patch.object(restore_tenant.Site.objects, "get")
 def test_restore_updates_site_domain_when_domain_is_changed(
     mocked_site,
-    tenant_connection_keeper,
+    backup_archive_path,
     testdir,
     mocked_run_restore,
     mock_directory_output,
@@ -138,11 +125,8 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     mocked_site = mocked_site.return_value
     mocked_site.domain = "outdated"
 
-    wanted_archive_path = testdir.tmpdir.join(f"backup.tar.gz")
-    call_command(backup_cmd, wanted_archive_path)
-
     with mock.patch("shutil.rmtree") as mocked_rmtree:
-        call_command(CMD, wanted_archive_path)
+        call_command(CMD, backup_archive_path)
 
     mocked_run_restore.assert_called_once()
 
@@ -153,12 +137,6 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     temporary_working_directory.check()
 
     assert logs.messages == [
-        "INFO:Dumping database...",
-        "INFO:Done!",
-        "INFO:Downloading media...",
-        "INFO:Done!",
-        "INFO:Compressing the backup...",
-        f"INFO:Created archive at: {str(wanted_archive_path)}",
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",

@@ -1,4 +1,5 @@
 import logging
+import os
 from unittest import mock
 from uuid import UUID
 
@@ -54,3 +55,8 @@ def mock_directory_output(testdir, archive_path):
             patched_out_dir.return_value = str(testdir.tmpdir)
             patched_uuid4.return_value = TEST_UUID
             yield
+
+
+@pytest.fixture
+def backup_archive_path():
+    return f"{os.getcwd()}/tenants/management/commands/tests/backup.tgz"
