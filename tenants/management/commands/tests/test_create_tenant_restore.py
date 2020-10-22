@@ -40,9 +40,7 @@ def test_tenant_is_properly_selected(
 
 
 @mock.patch.object(createtenant, "Tenant")
-def test_restore_location_is_optional_when_not_backing_up(
-    mocked_tenant, test_tenant
-):
+def test_restore_location_is_optional_when_not_backing_up(mocked_tenant, test_tenant):
     call_command(CMD, test_tenant.domain_url)
     mocked_tenant.return_value.save.assert_called_once()
     mocked_tenant.return_value.create_schema.assert_called_once()

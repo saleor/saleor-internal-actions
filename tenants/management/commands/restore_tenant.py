@@ -44,6 +44,12 @@ class Command(BaseCommand):
 
         parser.epilog = self.epilog
         parser.formatter_class = RawTextHelpFormatter
+
+        parser.add_argument(
+            "--skip_media",
+            action="store_true",
+            help="Skip restoring media files. Ignored if --restore not provided",
+        )
         if add_location_arg:
             parser.add_argument(
                 "location",
@@ -85,12 +91,18 @@ class Command(BaseCommand):
                 self._get_dump_from_local(path=location)
             else:
                 raise NotImplementedError(type(location), location)
+
+            backup_skip_media = self._manager.metadata.get("skip_media", False)
+            if base_options["skip_media"] is False and backup_skip_media is True:
+                raise CommandError(
+                    "Selected backup does not include media files. Add --skip_media flag to restore this backup"
+                )
         except Exception as exc:
             self._manager.stop()
             raise exc
 
     def _run_load_data(self):
-        metadata = self._manager.get_metadata()
+        metadata = self._manager.metadata
         sql_dump_filename = self._manager.schema_path
         source_schema = metadata["schema_name"]
         target_schema = connection.tenant.schema_name
@@ -151,4 +163,4 @@ class Command(BaseCommand):
 
     def handle(self, *_, **options):
         self.prepare_for_restore(**options)
-        self.run_restore()
+        self.run_restore(skip_media=options["skip_media"])

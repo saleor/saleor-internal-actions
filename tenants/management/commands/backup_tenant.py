@@ -51,6 +51,9 @@ ENVIRONMENT VARIABLES:
                 type=location_type,
             )
         parser.add_argument(
+            "--skip_media", action="store_true", help="Do not include media in backup"
+        )
+        parser.add_argument(
             "-l",
             "--compression-level",
             default=6,
@@ -74,7 +77,9 @@ ENVIRONMENT VARIABLES:
         MediaManager(media_dir).download()
         logger.info("Done!")
 
-    def handle(self, location: LOCATION_TYPE, compression_level, **options):
+    def handle(
+        self, location: LOCATION_TYPE, compression_level, skip_media=False, **options
+    ):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
 
@@ -87,9 +92,12 @@ ENVIRONMENT VARIABLES:
 
             try:
                 run_dump_data(schema_name=schema_name, target=archive.schema_path)
-                self._run_media_backup(archive.media_dir)
+                if not skip_media:
+                    self._run_media_backup(archive.media_dir)
                 archive.add_metadata(
-                    schema_name=schema_name, domain=connection.tenant.domain_url
+                    schema_name=schema_name,
+                    domain=connection.tenant.domain_url,
+                    skip_media=skip_media,
                 )
             finally:
                 connection.set_tenant(connection.tenant, prev_include_public)

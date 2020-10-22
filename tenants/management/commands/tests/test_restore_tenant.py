@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import mock
 
+import os
 import boto3
 import pytest
 from boto3_type_annotations import s3
@@ -22,6 +23,11 @@ def mocked_media_list():
     with mock.patch.object(restore_tenant.MediaManager, "_list_storage_dir") as patched:
         patched.return_value = [], []
         yield patched
+
+
+@pytest.fixture
+def backup_no_media_path():
+    return f"{os.getcwd()}/tenants/management/commands/tests/backup_skip_media.tgz"
 
 
 def test_location_required(test_tenant):
@@ -68,13 +74,13 @@ def test_restore_from_bucket(
 
     temporary_working_directory.check()
 
-    assert logs.messages == [
+    assert set(logs.messages) == {
         f"INFO:Retrieving archive from s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
-        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
-    ]
+    }
 
 
 def test_restore_from_local_file(
@@ -100,12 +106,12 @@ def test_restore_from_local_file(
 
     temporary_working_directory.check()
 
-    assert logs.messages == [
+    assert set(logs.messages) == {
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
-        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
-    ]
+    }
 
 
 @mock.patch.object(restore_tenant.Site.objects, "get")
@@ -136,12 +142,52 @@ def test_restore_updates_site_domain_when_domain_is_changed(
 
     temporary_working_directory.check()
 
-    assert logs.messages == [
+    assert set(logs.messages) == {
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
-        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
+        f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
         f"INFO:Updating outdated site domain...",
-    ]
+    }
 
     assert mocked_site.domain == test_tenant.domain_url
+
+
+def test_restore_with_no_media(
+    backup_no_media_path,
+    temporary_working_directory,
+    logs,
+    mocked_run_restore,
+    testdir,
+    mock_directory_output,
+):
+    with mock.patch("shutil.rmtree") as mocked_rmtree:
+        call_command(CMD, backup_no_media_path, "--skip_media")
+
+    mocked_rmtree.assert_called_once_with(
+        Path(temporary_working_directory), ignore_errors=True
+    )
+
+    assert set(logs.messages) == {
+        f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
+        f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
+        f"INFO:Restoring the data...",
+    }
+    mocked_run_restore.assert_called_once()
+
+
+def test_restore_fails_without_skip_media(
+    backup_no_media_path, temporary_working_directory, testdir, mock_directory_output,
+):
+    with pytest.raises(CommandError) as exc:
+        with mock.patch("shutil.rmtree") as mocked_rmtree:
+            call_command(CMD, backup_no_media_path)
+
+    assert (
+        exc.value.args[0]
+        == "Selected backup does not include media files. Add --skip_media flag to restore this backup"
+    )
+
+    mocked_rmtree.assert_called_once_with(
+        Path(temporary_working_directory), ignore_errors=True
+    )

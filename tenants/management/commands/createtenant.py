@@ -30,15 +30,10 @@ class Command(restore_tenant.Command):
             help="The local path or URL of the file to restore from. See --help.",
             type=location_type,
         )
-        parser.add_argument(
-            "--skip_media",
-            action="store_true",
-            help="Skip restoring media files. Ignored if --restore not provided",
-        )
         super().add_arguments(parser, add_location_arg=False)
         parser.set_defaults(bucket_name=settings.DEFAULT_BACKUP_BUCKET_NAME)
 
-    def handle(self, *_, domain_url: str, schema: str, skip_media=False, **options):
+    def handle(self, *_, domain_url: str, schema: str, **options):
         domain_url = domain_url.lower()
         default_schema_name = domain_url.split(".")[0]
         schema_name = schema or default_schema_name
@@ -55,7 +50,7 @@ class Command(restore_tenant.Command):
         try:
             if restore_from_location:
                 connection.set_tenant(tenant)
-                self.run_restore(skip_media=skip_media)
+                self.run_restore(skip_media=options["skip_media"])
             else:
                 tenant.create_schema()
         except Exception as exc:

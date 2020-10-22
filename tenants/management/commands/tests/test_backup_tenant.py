@@ -85,8 +85,8 @@ def test_dump_tenant(
     with TarFile.gzopen(str(archive_path), mode="r") as fin:
         assert [m.name for m in fin.getmembers()] == [
             "schema.sql",
-            "media",
             "metadata.json",
+            "media",
         ]
         extract_dir.mkdir()
 
@@ -97,6 +97,19 @@ def test_dump_tenant(
         assert f'CREATE SCHEMA "{test_tenant.schema_name}"' in dump
         assert dump.count("CREATE SCHEMA") == 1
         assert 'TABLE "tenant"' not in dump
+
+
+@mock.patch.object(backup_tenant.TenantDump, "add_metadata")
+def test_dump_tenant_skip_media(
+    mocked_add_metadata, archive_path, mocked_dump, mocked_compress, mocked_media_backup
+):
+    call_command(CMD, archive_path, "--skip_media")
+
+    mocked_dump.assert_called_once()
+    mocked_media_backup.assert_not_called()
+    mocked_add_metadata.assert_called_once()
+    kwargs = mocked_add_metadata.call_args.kwargs
+    assert kwargs["skip_media"] is True
 
 
 def test_not_providing_upload_filename_does_not_trigger_upload(

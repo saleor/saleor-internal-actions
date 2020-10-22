@@ -20,6 +20,7 @@ class TenantDump:
 
     def __init__(self, *, temp_working_directory: Optional[Path] = None):
         self._temp_working_directory: Optional[Path] = temp_working_directory
+        self._metadata = None
 
     @property
     def temp_working_directory(self) -> Path:
@@ -65,9 +66,15 @@ class TenantDump:
         with open(self.metadata_path, "wt") as f:
             json.dump(current_meta, f)
 
-    def get_metadata(self):
-        with open(self.metadata_path) as f:
-            return json.load(f)
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            try:
+                with open(self.metadata_path) as f:
+                    self._metadata = json.load(f)
+            except FileNotFoundError:
+                self._metadata = {}
+        return self._metadata
 
     def compress_all(
         self, archive_path: Optional[str] = None, level: int = DEFAULT_COMPRESSION_LEVEL
@@ -77,8 +84,9 @@ class TenantDump:
             name=archive_path, mode="w", compresslevel=level
         ) as archive:
             archive.add(name=self.schema_path, arcname=self.SCHEMA_DATA_FILENAME)
-            archive.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
             archive.add(name=self.metadata_path, arcname=self.METADATA_FILENAME)
+            if os.path.exists(self.media_dir):
+                archive.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
         logger.info("Created archive at: %s", archive_path)
 
     def decompress_all(
