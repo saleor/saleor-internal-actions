@@ -1,6 +1,11 @@
 version: 2
 jobs:
   build:
+    environment:
+      DEPLOY_CLUSTER_NAME: saleor-cloud
+      STAGING_K8S_NAMESPACE: cloud-staging
+      STAGING_DEPLOYMENT_NAME: saleor-test
+      MASTER_BRANCH_NAME: multitenant-master
     docker:
       - image: circleci/python:3.8
     steps:
@@ -25,10 +30,11 @@ jobs:
             hash=$(git rev-parse --short HEAD)
             branch=$(git rev-parse --abbrev-ref HEAD)
 
-            if [[ "$branch" == "multitenant-master" ]]; then
+            if [[ "$branch" == "$MASTER_BRANCH_NAME" ]]; then
               tags=("${repo}:latest"
                     "${repo}:${version}"
                     "${repo}:${version}-${hash}")
+              echo "export IMAGE_TAG=${repo}:${version}-${hash}" >> $BASH_ENV
             else
               branch=$(echo $branch | sed 's@/@_@g')
               tags=("${repo}:${version}-${hash}-${branch}")
@@ -39,3 +45,22 @@ jobs:
               docker tag project_api $tag
               docker push $tag
             done
+      - run:
+          name: Deploy to Cloud-Staging
+          command: |
+            if [[ "$(git rev-parse --abbrev-ref HEAD)" != "$MASTER_BRANCH_NAME" ]]; then
+              echo "Not on master, skipping deployment"
+              exit 0
+            fi
+
+            curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x ./kubectl
+
+            aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME"
+            ./kubectl patch deployment "$STAGING_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+
+            pod_name=$(./kubectl get pod -l app="$STAGING_DEPLOYMENT_NAME" -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
+            ./kubectl wait --for=condition=ready pod -l app="$STAGING_DEPLOYMENT_NAME" -n "$STAGING_K8S_NAMESPACE"
+
+            ./kubectl exec -n "$STAGING_K8S_NAMESPACE" $pod_name -- ./manage.py migrate_schemas
+
