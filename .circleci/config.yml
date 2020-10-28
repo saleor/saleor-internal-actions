@@ -6,6 +6,7 @@ jobs:
       STAGING_K8S_NAMESPACE: cloud-staging
       STAGING_DEPLOYMENT_NAME: saleor-test
       MASTER_BRANCH_NAME: multitenant-master
+      AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_staging_ns
     docker:
       - image: circleci/python:3.8
     steps:
@@ -56,7 +57,7 @@ jobs:
             curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x ./kubectl
 
-            aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME"
+            aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
             ./kubectl patch deployment "$STAGING_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
 
             pod_name=$(./kubectl get pod -l app="$STAGING_DEPLOYMENT_NAME" -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
