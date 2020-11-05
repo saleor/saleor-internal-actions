@@ -59,6 +59,7 @@ jobs:
 
             aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
             ./kubectl patch deployment "$STAGING_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+            ./kubectl patch deployment "$(echo saleor-test | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
 
             ./kubectl wait --for=condition=ready pod -l app="$STAGING_DEPLOYMENT_NAME" -n "$STAGING_K8S_NAMESPACE" --timeout 5m
 
