@@ -1,8 +1,8 @@
 from django.conf import settings
-from django.core.management import call_command
 from django.db import connection
 
 from tenants.management.argparse import location_type
+from tenants.utils import origins_to_hosts
 
 from ...models import Tenant
 from . import restore_tenant
@@ -30,20 +30,34 @@ class Command(restore_tenant.Command):
             help="The local path or URL of the file to restore from. See --help.",
             type=location_type,
         )
+        parser.add_argument(
+            "--allowed-client-origins",
+            dest="allowed_client_origins",
+            help="List of allowed client origins",
+            nargs="*",
+        )
         super().add_arguments(parser, add_location_arg=False)
         parser.set_defaults(bucket_name=settings.DEFAULT_BACKUP_BUCKET_NAME)
 
     def handle(self, *_, domain_url: str, schema: str, **options):
         domain_url = domain_url.lower()
         default_schema_name = domain_url.split(".")[0]
-        schema_name = schema or default_schema_name
 
         restore_from_location = options.get("location")
 
         if restore_from_location:
             self.prepare_for_restore(**options)
 
-        tenant = Tenant(domain_url=domain_url, schema_name=schema_name)
+        tenants_args = {
+            "domain_url": domain_url,
+            "schema_name": schema or default_schema_name,
+        }
+
+        allowed_client_origins = options.get("allowed_client_origins")
+        if allowed_client_origins:
+            tenants_args["allowed_client_origins"] = allowed_client_origins
+
+        tenant = Tenant(**tenants_args)
         tenant.auto_create_schema = False
         tenant.save()
 

@@ -7,7 +7,7 @@ index 9773d9e71..50bfd1a07 100644
 +from django.db import connection
 +from tenant_schemas.utils import get_tenant_model
 +from tenants.postgresql_backend.creation import DEFAULT_TEST_TENANT, OTHER_TEST_TENANT
-+from tenants.test.client import TenantClient
++from tenants.tests.client import TenantClient
 +
 +
  pytest_plugins = [
@@ -80,7 +80,7 @@ index 422233910..9d1e50617 100644
  from ...tests.utils import flush_post_commit_hooks
  from ..views import handled_errors_logger, unhandled_errors_logger
  from .utils import assert_no_permission
-+from tenants.test.client import TenantClient
++from tenants.tests.client import TenantClient
  
  API_PATH = reverse("api")
  ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin"

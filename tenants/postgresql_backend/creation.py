@@ -20,6 +20,13 @@ DEFAULT_TEST_TENANT = {
     # as default
     "schema_name": "mirumee",
     "domain_url": _get_tenant_domain("mirumee"),
+    "allowed_client_origins": [
+        "http://example.com",
+        "https://sub.example.com",
+        "http://www.example.com",
+        "http://test.com",
+        "http://www.test.com",
+    ],
 }
 
 OTHER_TEST_TENANT = {
@@ -79,6 +86,6 @@ class DatabaseCreation(BaseDatabaseCreation):
             keepdb=keepdb,
         )
         cursor = connection.cursor()
-        cursor.execute('CREATE EXTENSION IF NOT EXISTS hstore')
-        cursor.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS hstore")
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
         self._create_test_tenants()
