@@ -1,5 +1,6 @@
-ARG VERSION="2.11.1"
-FROM mirumee/saleor:${VERSION}
+ARG VERSION="2.11.2"
+ARG UPSTREAM="ghcr.io/mirumee/saleor"
+FROM ${UPSTREAM}:${VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYCURL_SSL_LIBRARY=openssl
