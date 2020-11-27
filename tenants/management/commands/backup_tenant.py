@@ -6,7 +6,7 @@ from pathlib import Path
 
 import boto3
 from boto3_type_annotations.s3 import Client
-from django.core.management import BaseCommand, CommandError
+from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connection
 
 from tenants.management.argparse import (
@@ -53,17 +53,6 @@ ENVIRONMENT VARIABLES:
         parser.add_argument(
             "--skip_media", action="store_true", help="Do not include media in backup"
         )
-        parser.add_argument(
-            "-l",
-            "--compression-level",
-            default=6,
-            type=int,
-            help=(
-                "Specifies the compression level for gzip (default). "
-                "The default compression level is 6, "
-                "giving the best ratio of compression ratio vs CPU time"
-            ),
-        )
 
     @staticmethod
     def _upload(from_path: Path, *, opts: S3Options):
@@ -77,24 +66,22 @@ ENVIRONMENT VARIABLES:
         MediaManager(media_dir).download()
         logger.info("Done!")
 
-    def handle(
-        self, location: LOCATION_TYPE, compression_level, skip_media=False, **options
-    ):
+    def handle(self, location: LOCATION_TYPE, skip_media=False, **options):
         if not connection.tenant:
             raise CommandError("No tenant selected.")
 
         save_path = location if isinstance(location, Path) else None
 
-        with TenantDump() as archive:
+        with TenantDump() as backup:
             prev_include_public = connection.include_public_schema
             connection.set_tenant(connection.tenant, include_public=False)
             schema_name = connection.tenant.schema_name
 
             try:
-                run_dump_data(schema_name=schema_name, target=archive.schema_path)
+                run_dump_data(schema_name=schema_name, target=backup.schema_path)
                 if not skip_media:
-                    self._run_media_backup(archive.media_dir)
-                archive.add_metadata(
+                    self._run_media_backup(backup.media_dir)
+                backup.add_metadata(
                     schema_name=schema_name,
                     domain=connection.tenant.domain_url,
                     skip_media=skip_media,
@@ -102,15 +89,15 @@ ENVIRONMENT VARIABLES:
             finally:
                 connection.set_tenant(connection.tenant, prev_include_public)
 
-            logger.info("Compressing the backup...")
-            archive.compress_all(archive_path=save_path, level=compression_level)
+            logger.info("Archiving the backup...")
+            backup.archive_all(archive_path=save_path)
 
             if save_path is not None:
                 return
 
             if isinstance(location, S3Options):
                 logger.info(f"Uploading archive to {location}...")
-                self._upload(archive.get_archive_path(), opts=location)
+                self._upload(backup.get_archive_path(), opts=location)
 
 
 @assure_connection_initialized
@@ -119,14 +106,6 @@ def run_dump_data(schema_name, target):
     db_info = connection.connection.info
     constr = f"postgres://{db_info.user}:{urllib.parse.quote(db_info.password)}@{db_info.host}/{db_info.dbname}"
     subprocess.check_call(
-        [
-            "pg_dump",
-            "-n",
-            schema_name,
-            "-f",
-            target,
-            "--quote-all-identifiers",
-            constr,
-        ]
+        ["pg_dump", "-n", schema_name, "-f", target, "--quote-all-identifiers", constr,]
     )
     logger.info("Done!")

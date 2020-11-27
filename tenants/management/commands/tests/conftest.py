@@ -45,7 +45,7 @@ def temporary_raw_metadata_path(temporary_working_directory):
 
 @pytest.fixture()
 def archive_path(testdir):
-    return testdir.tmpdir.join(f"{TEST_UUID.hex}.tar.gz")
+    return testdir.tmpdir.join(f"{TEST_UUID.hex}.tar")
 
 
 @pytest.fixture
@@ -59,4 +59,4 @@ def mock_directory_output(testdir, archive_path):
 
 @pytest.fixture
 def backup_archive_path():
-    return f"{os.getcwd()}/tenants/management/commands/tests/backup.tgz"
+    return f"{os.getcwd()}/tenants/management/commands/tests/backup.tar"

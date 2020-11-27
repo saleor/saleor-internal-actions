@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class TenantDump:
-    DEFAULT_COMPRESSION_LEVEL = 6
     IGNORE_ERRS_RMTREE = True
     MEDIA_DIRNAME = "media"
     SCHEMA_DATA_FILENAME = "schema.sql"
@@ -30,7 +29,7 @@ class TenantDump:
         return self._temp_working_directory
 
     def get_archive_path(self):
-        archive_path = Path(f"{self._temp_working_directory!s}.tar.gz")
+        archive_path = Path(f"{self._temp_working_directory!s}.tar")
         return archive_path
 
     @property
@@ -76,20 +75,16 @@ class TenantDump:
                 self._metadata = {}
         return self._metadata
 
-    def compress_all(
-        self, archive_path: Optional[str] = None, level: int = DEFAULT_COMPRESSION_LEVEL
-    ):
+    def archive_all(self, archive_path: Optional[str] = None):
         archive_path = archive_path or self.get_archive_path()
-        with TarFile.gzopen(
-            name=archive_path, mode="w", compresslevel=level
-        ) as archive:
-            archive.add(name=self.schema_path, arcname=self.SCHEMA_DATA_FILENAME)
-            archive.add(name=self.metadata_path, arcname=self.METADATA_FILENAME)
+        with TarFile.open(name=archive_path, mode="w") as tarball:
+            tarball.add(name=self.schema_path, arcname=self.SCHEMA_DATA_FILENAME)
+            tarball.add(name=self.metadata_path, arcname=self.METADATA_FILENAME)
             if os.path.exists(self.media_dir):
-                archive.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
+                tarball.add(name=self.media_dir, arcname=self.MEDIA_DIRNAME)
         logger.info("Created archive at: %s", archive_path)
 
-    def decompress_all(
+    def extract_all(
         self,
         archive_path: Optional[Path] = None,
         fileobj: Optional[Union[IO, bytes]] = None,
@@ -99,7 +94,7 @@ class TenantDump:
         if not any([archive_path, fileobj]):
             archive_path = self.get_archive_path()
 
-        with TarFile.gzopen(name=archive_path, fileobj=fileobj, mode="r") as archive:
+        with TarFile.open(name=archive_path, fileobj=fileobj, mode="r") as archive:
             for member in archive.getmembers():
                 logger.info("Extracting %s to %s", member.name, work_path)
                 archive.extract(member, path=work_path)

@@ -70,12 +70,12 @@ class Command(BaseCommand):
             with io.BytesIO() as fp_out:
                 fp_out.writelines(body_stream)
                 fp_out.seek(0)
-                self._manager.decompress_all(fileobj=fp_out)
+                self._manager.extract_all(fileobj=fp_out)
         finally:
             body_stream.close()
 
     def _get_dump_from_local(self, *, path: Path) -> None:
-        self._manager.decompress_all(archive_path=path)
+        self._manager.extract_all(archive_path=path)
 
     def prepare_for_restore(self, location: LOCATION_TYPE, **base_options):
         self._manager = TenantDump()
@@ -136,7 +136,6 @@ class Command(BaseCommand):
 
     def _run_media_restore(self):
         MediaManager(self._manager.media_dir).upload()
-        call_command("create_thumbnails")
 
     @staticmethod
     def _update_tenant_site_domain():

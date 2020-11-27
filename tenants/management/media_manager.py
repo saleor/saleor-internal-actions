@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class MediaManager:
-    MEDIA_SKIP_DIRS = ["__sized__"]
+    MEDIA_SKIP_DIRS = []
 
     def __init__(self, media_dir: Path):
         self.media_dir = media_dir

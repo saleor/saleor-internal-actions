@@ -29,16 +29,17 @@ def test_rollback_tenant(
     assert check_calls[0].args[0][0] == "pg_dump"
     assert check_calls[1].args[0][0] == "psql"
 
-    mocked_call_command.assert_has_calls([
-        mock.call("migrate_schemas", schema_name="mirumee"),
-        mock.call("create_thumbnails")
-    ])
+    mocked_call_command.assert_called_once_with(
+        "migrate_schemas", schema_name="mirumee"
+    )
 
     mocked_media_manager.return_value.upload.assert_called_once()
 
 
 @mock.patch.object(restore_tenant, "call_command")
-@mock.patch.object(restore_tenant.subprocess, "check_call", side_effect=[None, Exception, None])
+@mock.patch.object(
+    restore_tenant.subprocess, "check_call", side_effect=[None, Exception, None]
+)
 @mock.patch.object(rollback_tenant.Command, "_drop_schema")
 def test_rollback_tenant_dump_restore_fails(
     mocked_drop_schema,

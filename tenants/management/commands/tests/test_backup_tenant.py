@@ -26,8 +26,8 @@ def mocked_dump():
 
 
 @pytest.fixture
-def mocked_compress():
-    with mock.patch.object(backup_tenant.TenantDump, "compress_all") as patched:
+def mocked_archive():
+    with mock.patch.object(backup_tenant.TenantDump, "archive_all") as patched:
         yield patched
 
 
@@ -76,13 +76,13 @@ def test_dump_tenant(
         "INFO:Done!",
         "INFO:Downloading media...",
         "INFO:Done!",
-        "INFO:Compressing the backup...",
+        "INFO:Archiving the backup...",
         f"INFO:Created archive at: {archive_path!s}",
     ]
 
-    # Check once the gzip file is decompressed, it is still the same file
+    # Check once the tar file is extracted, it is still the same file
     # as the original
-    with TarFile.gzopen(str(archive_path), mode="r") as fin:
+    with TarFile.open(str(archive_path), mode="r") as fin:
         assert [m.name for m in fin.getmembers()] == [
             "schema.sql",
             "metadata.json",
@@ -101,7 +101,7 @@ def test_dump_tenant(
 
 @mock.patch.object(backup_tenant.TenantDump, "add_metadata")
 def test_dump_tenant_skip_media(
-    mocked_add_metadata, archive_path, mocked_dump, mocked_compress, mocked_media_backup
+    mocked_add_metadata, archive_path, mocked_dump, mocked_archive, mocked_media_backup
 ):
     call_command(CMD, archive_path, "--skip_media")
 
@@ -116,28 +116,14 @@ def test_not_providing_upload_filename_does_not_trigger_upload(
     mocked_upload_to_s3,
     mocked_media_backup,
     mocked_dump,
-    mocked_compress,
+    mocked_archive,
     archive_path,
     mock_directory_output,
 ):
     """backup_tenant shouldn't try to upload the dump to the s3 bucket."""
     call_command(CMD, archive_path)
     mocked_dump.assert_called_once()
-    mocked_compress.assert_called_once()
-    mocked_upload_to_s3.assert_not_called()
-
-
-def test_custom_compression_level(
-    archive_path,
-    mocked_upload_to_s3,
-    mocked_media_backup,
-    mocked_dump,
-    mocked_compress,
-    mock_directory_output,
-):
-    call_command(CMD, archive_path, compression_level=0)
-    mocked_dump.assert_called_once()
-    mocked_compress.assert_called_once_with(archive_path=Path(archive_path), level=0)
+    mocked_archive.assert_called_once()
     mocked_upload_to_s3.assert_not_called()
 
 
@@ -153,7 +139,7 @@ def test_upload_to_s3_bucket(
     logs,
 ):
     BUCKET_NAME = "tenants_dumps"
-    FILENAME = "tenant_backup.tar.gz"
+    FILENAME = "tenant_backup.tar"
 
     connection: s3.Client = boto3.client("s3")
     connection.create_bucket(Bucket=BUCKET_NAME)
@@ -173,9 +159,9 @@ def test_upload_to_s3_bucket(
         "INFO:Done!",
         "INFO:Downloading media...",
         "INFO:Done!",
-        "INFO:Compressing the backup...",
+        "INFO:Archiving the backup...",
         f"INFO:Created archive at: {str(archive_path)}",
-        "INFO:Uploading archive to s3://tenants_dumps/tenant_backup.tar.gz...",
+        "INFO:Uploading archive to s3://tenants_dumps/tenant_backup.tar...",
     ]
 
     obj_data = connection.get_object(Bucket=BUCKET_NAME, Key=FILENAME)
@@ -220,7 +206,7 @@ def test_save_to_local(
         "INFO:Done!",
         "INFO:Downloading media...",
         "INFO:Done!",
-        "INFO:Compressing the backup...",
+        "INFO:Archiving the backup...",
         f"INFO:Created archive at: {str(wanted_archive_path)}",
     ]
 

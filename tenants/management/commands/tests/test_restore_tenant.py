@@ -13,8 +13,14 @@ CMD = "restore_tenant"
 
 
 @pytest.fixture
-def mocked_run_restore():
+def mocked_run_load_data():
     with mock.patch.object(restore_tenant.Command, "_run_load_data") as mocked:
+        yield mocked
+
+
+@pytest.fixture
+def mocked_run_media_restore():
+    with mock.patch.object(restore_tenant.Command, "_run_media_restore") as mocked:
         yield mocked
 
 
@@ -27,7 +33,7 @@ def mocked_media_list():
 
 @pytest.fixture
 def backup_no_media_path():
-    return f"{os.getcwd()}/tenants/management/commands/tests/backup_skip_media.tgz"
+    return f"{os.getcwd()}/tenants/management/commands/tests/backup_skip_media.tar"
 
 
 def test_location_required(test_tenant):
@@ -40,7 +46,8 @@ def test_location_required(test_tenant):
 @mock_s3
 def test_restore_from_bucket(
     backup_archive_path,
-    mocked_run_restore,
+    mocked_run_load_data,
+    mocked_run_media_restore,
     mock_directory_output,
     mocked_media_list,
     test_tenant,
@@ -66,7 +73,8 @@ def test_restore_from_bucket(
     with mock.patch("shutil.rmtree") as mocked_rmtree:
         call_command(CMD, s3_location)
 
-    mocked_run_restore.assert_called_once()
+    mocked_run_load_data.assert_called_once()
+    mocked_run_media_restore.assert_called_once()
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
@@ -74,19 +82,21 @@ def test_restore_from_bucket(
 
     temporary_working_directory.check()
 
-    assert set(logs.messages) == {
+    for log in {
         f"INFO:Retrieving archive from s3://tenants_dumps/tenant_backup.tar.gz...",
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
-    }
+    }:
+        assert log in logs.messages
 
 
 def test_restore_from_local_file(
     backup_archive_path,
     testdir,
-    mocked_run_restore,
+    mocked_run_load_data,
+    mocked_run_media_restore,
     mock_directory_output,
     mocked_media_list,
     test_tenant,
@@ -98,7 +108,8 @@ def test_restore_from_local_file(
     with mock.patch("shutil.rmtree") as mocked_rmtree:
         call_command(CMD, backup_archive_path)
 
-    mocked_run_restore.assert_called_once()
+    mocked_run_load_data.assert_called_once()
+    mocked_run_media_restore.assert_called_once()
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
@@ -106,12 +117,13 @@ def test_restore_from_local_file(
 
     temporary_working_directory.check()
 
-    assert set(logs.messages) == {
+    for log in {
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
-    }
+    }:
+        assert log in logs.messages
 
 
 @mock.patch.object(restore_tenant.Site.objects, "get")
@@ -119,7 +131,8 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     mocked_site,
     backup_archive_path,
     testdir,
-    mocked_run_restore,
+    mocked_run_load_data,
+    mocked_run_media_restore,
     mock_directory_output,
     mocked_media_list,
     test_tenant,
@@ -134,7 +147,7 @@ def test_restore_updates_site_domain_when_domain_is_changed(
     with mock.patch("shutil.rmtree") as mocked_rmtree:
         call_command(CMD, backup_archive_path)
 
-    mocked_run_restore.assert_called_once()
+    mocked_run_load_data.assert_called_once()
 
     mocked_rmtree.assert_called_once_with(
         Path(temporary_working_directory), ignore_errors=True
@@ -142,13 +155,14 @@ def test_restore_updates_site_domain_when_domain_is_changed(
 
     temporary_working_directory.check()
 
-    assert set(logs.messages) == {
+    for log in {
         f"INFO:Extracting schema.sql to {str(temporary_working_directory)}",
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Extracting media to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
         f"INFO:Updating outdated site domain...",
-    }
+    }:
+        assert log in logs.messages
 
     assert mocked_site.domain == test_tenant.domain_url
 
@@ -157,7 +171,8 @@ def test_restore_with_no_media(
     backup_no_media_path,
     temporary_working_directory,
     logs,
-    mocked_run_restore,
+    mocked_run_load_data,
+    mocked_run_media_restore,
     testdir,
     mock_directory_output,
 ):
@@ -173,7 +188,8 @@ def test_restore_with_no_media(
         f"INFO:Extracting metadata.json to {str(temporary_working_directory)}",
         f"INFO:Restoring the data...",
     }
-    mocked_run_restore.assert_called_once()
+    mocked_run_load_data.assert_called_once()
+    mocked_run_media_restore.assert_not_called()
 
 
 def test_restore_fails_without_skip_media(
