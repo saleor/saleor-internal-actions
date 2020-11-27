@@ -1,6 +1,3 @@
-import os
-import dj_database_url
-import django_cache_url
 import opentracing
 import xray_ot
 
@@ -11,6 +8,17 @@ from saleor.settings import *  # noqa
 ALLOWED_HOSTS = get_list(os.environ.get("ALLOWED_HOSTS", "*"))
 
 TENANT_MODEL = "tenants.Tenant"
+
+# When set to true, it will only send ``SET <schema_name>`` when the schema was actually
+# changed rather than before every SQL query.
+#
+# Value  ---  Number of SQL Queries
+# ---------------------------------
+# True   ---  N_Queries * 1 + M
+#        ---  M => number of schema switches, 99% of the time M = 1
+# False  ---  N_Queries * 2
+#
+TENANT_LIMIT_SET_CALLS = get_bool_from_env("TENANT_LIMIT_SET_QUERIES", True)
 
 TENANT_APPS = [*INSTALLED_APPS, "saleor.multitenancy"]
 SHARED_APPS = [
