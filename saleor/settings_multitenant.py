@@ -1,7 +1,40 @@
-import opentracing
-import xray_ot
+import opentracing as ot
 
 from saleor.settings import *  # noqa
+
+# Datadog APM agent for distributed tracing
+# Note we cannot import anything from ddtrace otherwise it will be initialized
+# It needs to be called as soon as possible due to monkey-patching starting
+# as soon as imported.
+
+DD_TRACE_ENABLED: bool = get_bool_from_env("DD_TRACE_ENABLED", False)
+# Configuration keys for the global tracer (a base datadog tracer that is used inside
+# the Datadag opentracing tracer):
+#   https://docs.datadoghq.com/tracing/setup_overview/setup/python#configuration
+#
+# For Django support configuration:
+#   https://ddtrace.readthedocs.io/en/stable/integrations.html#django
+if DD_TRACE_ENABLED:
+    import ddtrace.opentracer as dd_ot
+    from ddtrace.opentracer.settings import ConfigKeys as ddKeys
+
+    def init_datadog_tracer(service_name: str, config):
+        # For configuration details, refer to
+        # https://ddtrace.readthedocs.io/en/stable/advanced_usage.html#opentracing
+        # Note `settings` key is for setting up filters
+        tracer = dd_ot.Tracer(service_name, config=config)
+        dd_ot.set_global_tracer(tracer)
+        return tracer
+
+    init_datadog_tracer(
+        os.environ.get("DD_SERVICE"),
+        {
+            ddKeys.AGENT_HOSTNAME: os.environ.get("DD_AGENT_HOST"),
+            ddKeys.AGENT_PORT: int(os.environ.get("DD_TRACE_AGENT_PORT", 8126)),
+            ddKeys.DEBUG: get_bool_from_env("DD_TRACE_DEBUG", False),
+            ddKeys.ENABLED: DD_TRACE_ENABLED,
+        },
+    )
 
 # Multitenancy
 
@@ -25,13 +58,11 @@ SHARED_APPS = [
     "tenant_schemas",
     "tenants",
     "django.contrib.contenttypes",
-    "django_version",
 ]
 INSTALLED_APPS = [
     "tenants",
     "tenant_schemas",
     "django_ses",
-    "django_version",
     "django_prometheus",
     *TENANT_APPS,
 ]
@@ -82,18 +113,3 @@ DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
 
 if os.environ.get("USE_SES", False):
     EMAIL_BACKEND = "django_ses.SESBackend"
-
-# X-Ray
-PROJECT_VERSION = os.environ.get("PROJECT_VERSION", "undefined")
-XRAY_COLLECTOR_HOST = os.environ.get("COLLECTOR_HOST", None)
-XRAY_COLLECTOR_PORT = int(os.environ.get("COLLECTOR_PORT", 2000))
-XRAY_COLLECTOR_VERBOSITY = int(os.environ.get("COLLECTOR_VERBOSITY", 1))
-
-if XRAY_COLLECTOR_HOST:
-    tracer = xray_ot.Tracer(
-        component_name="Saleor-Staging",
-        collector_host=XRAY_COLLECTOR_HOST,
-        collector_port=XRAY_COLLECTOR_PORT,
-        verbosity=XRAY_COLLECTOR_VERBOSITY,
-    )
-    opentracing.set_global_tracer(tracer)

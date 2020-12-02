@@ -15,7 +15,6 @@ services:
     depends_on:
       - db
       - redis
-      - jaeger
     volumes:
       # - ./tenants/:/app/tenants:Z
       - /app/saleor/static/assets
@@ -78,6 +77,17 @@ services:
     restart: unless-stopped
     networks:
       - saleor-backend-tier
+
+  # Versions:
+  # docker run --rm quay.io/skopeo/stable list-tags docker://gcr.io/datadoghq/agent
+  dd-agent:
+    image: gcr.io/datadoghq/agent:7
+    ports:
+    - "8126:8126/tcp"
+    environment:
+      DD_APM_ENABLED: "true"
+      DD_BIND_HOST: "0.0.0.0"
+      DD_API_KEY: unset
 
   nginx:
     image: nginx
