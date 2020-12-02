@@ -20,6 +20,7 @@ from tenants.management.media_manager import MediaManager
 from tenants.utils import assure_connection_initialized
 
 logger = logging.getLogger(__name__)
+BACKUP_VERSION = 1
 
 
 class Command(BaseCommand):
@@ -58,7 +59,12 @@ ENVIRONMENT VARIABLES:
     def _upload(from_path: Path, *, opts: S3Options):
         s3_client: Client = boto3.client("s3")
         with open(from_path, mode="rb") as fp:
-            s3_client.put_object(Body=fp, ContentType="application/x-gzip", **opts)
+            s3_client.put_object(
+                Body=fp,
+                ContentType="application/x-gzip",
+                Tagging=f"BackupVersion={BACKUP_VERSION}",
+                **opts,
+            )
 
     @staticmethod
     def _run_media_backup(media_dir):
