@@ -40,10 +40,10 @@ jobs:
           name: Build application
           command: |
             docker-compose build --build-arg IMAGE_VERSION=$IMAGE_VERSION
-#      - run:
-#          name: Run tests
-#          command: |
-#            docker-compose run --rm api pytest -n 0
+      - run:
+          name: Run tests
+          command: |
+            docker-compose run --rm api pytest -n 0
       - run:
           name: Push to ECR
           command: |
