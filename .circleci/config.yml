@@ -23,16 +23,16 @@ jobs:
 
             if [[ "$branch" == "$MASTER_BRANCH_NAME" ]]; then
               image_version="${version}-${hash}"
-              tags=("${repo}:latest"
-                    "${repo}:${version}"
-                    "${repo}:${image_version}")
+              tags="${repo}:latest
+                    ${repo}:${version}
+                    ${repo}:${image_version}"
             else
               branch=$(echo $branch | sed 's@/@_@g')
               image_version="${version}-${hash}-${branch}"
-              tags=("${repo}:${version}-${image_version}")
+              tags="${repo}:${image_version}"
             fi
             echo "
-              tags=$tags
+              tags='"$tags"'
               export IMAGE_VERSION=${image_version}
               export IMAGE_TAG=${repo}:${image_version}
             " >> $BASH_ENV
@@ -40,17 +40,19 @@ jobs:
           name: Build application
           command: |
             docker-compose build --build-arg IMAGE_VERSION=$IMAGE_VERSION
-      - run:
-          name: Run tests
-          command: |
-            docker-compose run --rm api pytest -n 0
+#      - run:
+#          name: Run tests
+#          command: |
+#            docker-compose run --rm api pytest -n 0
       - run:
           name: Push to ECR
           command: |
             pip install awscli==1.18.155
             $(aws ecr get-login --no-include-email)
 
-            for tag in "${tags[@]}"; do
+            set -x
+
+            for tag in ${tags}; do
               docker tag project_api $tag
               docker push $tag
             done
