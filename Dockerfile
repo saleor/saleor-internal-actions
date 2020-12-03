@@ -57,4 +57,10 @@ RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --
 
 ENV PORT 8000
 ENV PROCESSES 4
+
+ARG IMAGE_VERSION
+ENV PROJECT_VERSION=${IMAGE_VERSION}
+
+RUN test -n "$PROJECT_VERSION" || echo "Warning: IMAGE_VERSION Argument was not passed" >&2
+
 CMD ["uwsgi", "--ini", "/app/saleor/wsgi/uwsgi.ini"]

@@ -14,9 +14,32 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
+          name: Prepare Environment
+          command: |
+            repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
+            version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
+            hash=$(git rev-parse --short HEAD)
+            branch=$(git rev-parse --abbrev-ref HEAD)
+
+            if [[ "$branch" == "$MASTER_BRANCH_NAME" ]]; then
+              image_version="${version}-${hash}"
+              tags=("${repo}:latest"
+                    "${repo}:${version}"
+                    "${repo}:${image_version}")
+            else
+              branch=$(echo $branch | sed 's@/@_@g')
+              image_version="${version}-${hash}-${branch}"
+              tags=("${repo}:${version}-${image_version}")
+            fi
+            echo "
+              tags=$tags
+              export IMAGE_VERSION=${image_version}
+              export IMAGE_TAG=${repo}:${image_version}
+            " >> $BASH_ENV
+      - run:
           name: Build application
           command: |
-            docker-compose build
+            docker-compose build --build-arg IMAGE_VERSION=$IMAGE_VERSION
       - run:
           name: Run tests
           command: |
@@ -25,21 +48,6 @@ jobs:
           name: Push to ECR
           command: |
             pip install awscli==1.18.155
-
-            repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
-            version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
-            hash=$(git rev-parse --short HEAD)
-            branch=$(git rev-parse --abbrev-ref HEAD)
-
-            if [[ "$branch" == "$MASTER_BRANCH_NAME" ]]; then
-              tags=("${repo}:latest"
-                    "${repo}:${version}"
-                    "${repo}:${version}-${hash}")
-              echo "export IMAGE_TAG=${repo}:${version}-${hash}" >> $BASH_ENV
-            else
-              branch=$(echo $branch | sed 's@/@_@g')
-              tags=("${repo}:${version}-${hash}-${branch}")
-            fi
             $(aws ecr get-login --no-include-email)
 
             for tag in "${tags[@]}"; do

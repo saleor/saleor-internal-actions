@@ -1,6 +1,16 @@
+from sys import stderr
+
 import opentracing as ot
 
 from saleor.settings import *  # noqa
+
+
+PROJECT_VERSION = os.getenv("PROJECT_VERSION")
+
+if not PROJECT_VERSION:
+    PROJECT_VERSION = "unknown"
+    print("Warning: missing PROJECT_VERSION key", file=stderr)
+
 
 # Datadog APM agent for distributed tracing
 # Note we cannot import anything from ddtrace otherwise it will be initialized
@@ -15,6 +25,10 @@ DD_TRACE_ENABLED: bool = get_bool_from_env("DD_TRACE_ENABLED", False)
 # For Django support configuration:
 #   https://ddtrace.readthedocs.io/en/stable/integrations.html#django
 if DD_TRACE_ENABLED:
+    # Set project version before importing DataDog tracer
+    # as it will try to find this key during import
+    os.environ["DD_VERSION"] = PROJECT_VERSION
+
     import ddtrace.opentracer as dd_ot
     from ddtrace.opentracer.settings import ConfigKeys as ddKeys
 
@@ -113,3 +127,9 @@ DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
 
 if os.environ.get("USE_SES", False):
     EMAIL_BACKEND = "django_ses.SESBackend"
+
+CLOUD_SENTRY_DSN = os.getenv("CLOUD_SENTRY_DSN")
+if CLOUD_SENTRY_DSN:
+    from tenants.sentry import CloudSentry
+
+    CloudSentry(PROJECT_VERSION, CLOUD_SENTRY_DSN).init()
