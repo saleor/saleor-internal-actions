@@ -6,7 +6,7 @@ from pathlib import Path
 
 import boto3
 from boto3_type_annotations.s3 import Client
-from django.core.management import BaseCommand, CommandError, call_command
+from django.core.management import BaseCommand, CommandError
 from django.db import connection
 
 from tenants.management.argparse import (

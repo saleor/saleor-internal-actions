@@ -6,6 +6,7 @@ import boto3
 import pytest
 from boto3_type_annotations import s3
 from django.core.management import call_command, CommandError
+from mock import call
 from moto import mock_s3
 from tenants.management.commands import restore_tenant
 
@@ -76,9 +77,10 @@ def test_restore_from_bucket(
     mocked_run_load_data.assert_called_once()
     mocked_run_media_restore.assert_called_once()
 
-    mocked_rmtree.assert_called_once_with(
-        Path(temporary_working_directory), ignore_errors=True
-    )
+    mocked_rmtree.assert_has_calls([
+        mock.ANY,  # call from tempfile lib
+        call(Path(temporary_working_directory), ignore_errors=True)
+    ])
 
     temporary_working_directory.check()
 

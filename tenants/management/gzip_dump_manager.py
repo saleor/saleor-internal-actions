@@ -86,15 +86,14 @@ class TenantDump:
 
     def extract_all(
         self,
-        archive_path: Optional[Path] = None,
-        fileobj: Optional[Union[IO, bytes]] = None,
+        archive_path: Optional[Union[Path, str]] = None,
     ):
         work_path = self.temp_working_directory
 
-        if not any([archive_path, fileobj]):
+        if not archive_path:
             archive_path = self.get_archive_path()
 
-        with TarFile.open(name=archive_path, fileobj=fileobj, mode="r") as archive:
+        with TarFile.open(name=archive_path, mode="r") as archive:
             for member in archive.getmembers():
                 logger.info("Extracting %s to %s", member.name, work_path)
                 archive.extract(member, path=work_path)

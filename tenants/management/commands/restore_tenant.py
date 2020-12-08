@@ -1,10 +1,11 @@
-import io
 import logging
+import os
 import subprocess
+import tempfile
 import urllib.parse
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
 import boto3
 from boto3_type_annotations.s3 import Client
@@ -59,20 +60,10 @@ class Command(BaseCommand):
 
     def _get_dump_from_s3(self, *, opts: S3Options) -> None:
         s3_client: Client = boto3.client("s3")
-        obj_data = s3_client.get_object(**opts)
-        content_type = obj_data.get("ContentType")
-        body_stream = obj_data["Body"]
-
-        if content_type != "application/x-gzip":
-            raise CommandError(f"Unsupported backup format: {content_type}")
-
-        try:
-            with io.BytesIO() as fp_out:
-                fp_out.writelines(body_stream)
-                fp_out.seek(0)
-                self._manager.extract_all(fileobj=fp_out)
-        finally:
-            body_stream.close()
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_path = os.path.join(tmp, 'backup')
+            s3_client.download_file(Filename=temp_path, **opts)
+            self._manager.extract_all(archive_path=temp_path)
 
     def _get_dump_from_local(self, *, path: Path) -> None:
         self._manager.extract_all(archive_path=path)
