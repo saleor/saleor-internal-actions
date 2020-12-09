@@ -80,6 +80,11 @@ services:
 
   # Versions:
   # docker run --rm quay.io/skopeo/stable list-tags docker://gcr.io/datadoghq/agent
+  #
+  # DANGER: do not set the API key unless you absolutely need to see and analyze the traces.
+  #         If you need to check traces are being sent, set DD_LOGGING_LEVEL=DEBUG to Saleor
+  #         and then watch logs of the agent and of Saleor as it provides enough information
+  #         and will not crash when an invalid API key is passed.
   dd-agent:
     image: gcr.io/datadoghq/agent:7
     ports:

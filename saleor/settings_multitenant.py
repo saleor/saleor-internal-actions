@@ -1,9 +1,7 @@
 from sys import stderr
 
-import opentracing as ot
-
 from saleor.settings import *  # noqa
-
+from tenants.datadog import DatadogInstaller
 
 PROJECT_VERSION = os.getenv("PROJECT_VERSION")
 
@@ -12,43 +10,31 @@ if not PROJECT_VERSION:
     print("Warning: missing PROJECT_VERSION key", file=stderr)
 
 
-# Datadog APM agent for distributed tracing
-# Note we cannot import anything from ddtrace otherwise it will be initialized
-# It needs to be called as soon as possible due to monkey-patching starting
-# as soon as imported.
-
 DD_TRACE_ENABLED: bool = get_bool_from_env("DD_TRACE_ENABLED", False)
-# Configuration keys for the global tracer (a base datadog tracer that is used inside
-# the Datadag opentracing tracer):
-#   https://docs.datadoghq.com/tracing/setup_overview/setup/python#configuration
-#
-# For Django support configuration:
-#   https://ddtrace.readthedocs.io/en/stable/integrations.html#django
 if DD_TRACE_ENABLED:
-    # Set project version before importing DataDog tracer
-    # as it will try to find this key during import
-    os.environ["DD_VERSION"] = PROJECT_VERSION
+    AGENT_HOST = os.getenv("DD_AGENT_HOST")
+    AGENT_PORT = int(os.getenv("DD_TRACE_AGENT_PORT", 8126))
 
-    import ddtrace.opentracer as dd_ot
-    from ddtrace.opentracer.settings import ConfigKeys as ddKeys
-
-    def init_datadog_tracer(service_name: str, config):
-        # For configuration details, refer to
-        # https://ddtrace.readthedocs.io/en/stable/advanced_usage.html#opentracing
-        # Note `settings` key is for setting up filters
-        tracer = dd_ot.Tracer(service_name, config=config)
-        dd_ot.set_global_tracer(tracer)
-        return tracer
-
-    init_datadog_tracer(
-        os.environ.get("DD_SERVICE"),
-        {
-            ddKeys.AGENT_HOSTNAME: os.environ.get("DD_AGENT_HOST"),
-            ddKeys.AGENT_PORT: int(os.environ.get("DD_TRACE_AGENT_PORT", 8126)),
-            ddKeys.DEBUG: get_bool_from_env("DD_TRACE_DEBUG", False),
-            ddKeys.ENABLED: DD_TRACE_ENABLED,
-        },
+    # Do not set DD_DEBUG to True unless you know what you are doing
+    # The behavior changes totally in debug mode and is buggy. It will NOT
+    # reflect the same way as in production, results will be totally different.
+    #
+    # Only prefer and trust DD_LOGGING_LEVEL=DEBUG, it will give more debug information
+    # and will not affect how the tracer works.
+    DD_DEBUG = get_bool_from_env("DD_TRACE_DEBUG", False)
+    DD_LOGGING_LEVEL = os.getenv(
+        "DD_LOGGING_LEVEL", "DEBUG" if DD_DEBUG is True else "INFO"
     )
+
+    DatadogInstaller(
+        agent_host=AGENT_HOST,
+        agent_port=AGENT_PORT,
+        project_version=PROJECT_VERSION,
+        variables=locals(),
+        logging_level=DD_LOGGING_LEVEL,
+        debug=DD_DEBUG,
+    ).init()
+
 
 # Multitenancy
 
@@ -77,21 +63,10 @@ INSTALLED_APPS = [
     "tenants",
     "tenant_schemas",
     "django_ses",
-    "django_prometheus",
     *TENANT_APPS,
 ]
 
-MIDDLEWARE = (
-    [
-        "django_prometheus.middleware.PrometheusBeforeMiddleware",
-        "tenants.middleware.SaleorTenantMiddleware",
-    ]
-    + MIDDLEWARE
-    + ["django_prometheus.middleware.PrometheusAfterMiddleware"]
-)
-
-ROOT_URLCONF = "saleor.urls_prometheus_wrapper"
-PROMETHEUS_EXPORT_MIGRATIONS = False
+MIDDLEWARE = ("tenants.middleware.SaleorTenantMiddleware", *MIDDLEWARE)
 
 DATABASE_ROUTERS = ("tenant_schemas.routers.TenantSyncRouter",)
 DATABASES = {
