@@ -27,7 +27,9 @@ def mocked_run_media_restore():
 
 @pytest.fixture
 def mocked_media_list():
-    with mock.patch.object(restore_tenant.MediaManager, "_list_storage_dir") as patched:
+    with mock.patch(
+        "tenants.storages.TenantFileSystemStorage._list_storage_dir"
+    ) as patched:
         patched.return_value = [], []
         yield patched
 
@@ -77,10 +79,12 @@ def test_restore_from_bucket(
     mocked_run_load_data.assert_called_once()
     mocked_run_media_restore.assert_called_once()
 
-    mocked_rmtree.assert_has_calls([
-        mock.ANY,  # call from tempfile lib
-        call(Path(temporary_working_directory), ignore_errors=True)
-    ])
+    mocked_rmtree.assert_has_calls(
+        [
+            mock.ANY,  # call from tempfile lib
+            call(Path(temporary_working_directory), ignore_errors=True),
+        ]
+    )
 
     temporary_working_directory.check()
 

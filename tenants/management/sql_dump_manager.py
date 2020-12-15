@@ -1,17 +1,14 @@
+import os
+
 from django.db import connection
 
 from tenants.management.gzip_dump_manager import TenantDump
 
 
 class SqlManager:
-    def __init__(self, sql_dump_filename: str):
-        with open(sql_dump_filename, encoding="utf-8") as dump_fh:
-            self.sql_dump = dump_fh.read()
+    def __init__(self, sql_dump_filename: str, source_schema: str, target_schema: str):
         self.sql_dump_filename = sql_dump_filename
-
-    @staticmethod
-    def _replace_dump_schema(dump: str, source_schema: str, target_schema: str):
-        replaceable = [
+        replace_template = [
             'CREATE SCHEMA "{schema_name}"',
             'ALTER SCHEMA "{schema_name}"',
             'CREATE TABLE "{schema_name}".',
@@ -26,13 +23,22 @@ class SqlManager:
             'ALTER TABLE ONLY "{schema_name}".',
             'REFERENCES "{schema_name}".',
         ]
-        for r in replaceable:
-            dump = dump.replace(
-                r.format(schema_name=source_schema), r.format(schema_name=target_schema)
-            )
-        return dump
+        self.replace_from = list(map(lambda s: s.format(schema_name=source_schema), replace_template))
+        self.replace_to = list(map(lambda s: s.format(schema_name=target_schema), replace_template))
 
-    def update(self, source_schema: str, target_schema: str):
-        dump = self._replace_dump_schema(self.sql_dump, source_schema, target_schema)
-        with open(self.sql_dump_filename, "wt", encoding="utf-8") as f:
-            f.write(dump)
+    def _replace(self, line: str):
+        if line == "\n" or line == "" or line.startswith("--"):
+            return line
+        for i, s in enumerate(self.replace_from):
+            if s in line:
+                line = line.replace(s, self.replace_to[i])
+        return line
+
+    def update(self):
+        temp_out_filename = f"{self.sql_dump_filename}_tmp"
+        with open(temp_out_filename, "wt", encoding="utf-8") as out_fh:
+            for line in open(self.sql_dump_filename, encoding="utf-8"):
+                replaced = self._replace(line)
+                out_fh.write(replaced)
+        os.remove(self.sql_dump_filename)
+        os.rename(temp_out_filename, self.sql_dump_filename)

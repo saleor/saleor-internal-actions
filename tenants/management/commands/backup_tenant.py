@@ -83,6 +83,12 @@ ENVIRONMENT VARIABLES:
             connection.set_tenant(connection.tenant, include_public=False)
             schema_name = connection.tenant.schema_name
 
+            logger.info(
+                "Creating backup for tenant %s into %s",
+                connection.tenant.domain_url,
+                location,
+            )
+
             try:
                 run_dump_data(schema_name=schema_name, target=backup.schema_path)
                 if not skip_media:
@@ -102,7 +108,7 @@ ENVIRONMENT VARIABLES:
                 return
 
             if isinstance(location, S3Options):
-                logger.info(f"Uploading archive to {location}...")
+                logger.info("Uploading archive to %s...", location)
                 self._upload(backup.get_archive_path(), opts=location)
 
 

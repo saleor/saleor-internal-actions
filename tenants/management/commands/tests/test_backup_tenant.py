@@ -45,7 +45,9 @@ def mocked_media_backup():
 
 @pytest.fixture
 def mocked_media_list():
-    with mock.patch.object(backup_tenant.MediaManager, "_list_storage_dir") as patched:
+    with mock.patch(
+        "tenants.storages.TenantFileSystemStorage._list_storage_dir"
+    ) as patched:
         patched.return_value = [], []
         yield patched
 
@@ -72,6 +74,7 @@ def test_dump_tenant(
 
     assert archive_path.check()
     assert logs.messages == [
+        f"INFO:Creating backup for tenant mirumee.com into {archive_path!s}",
         "INFO:Dumping database...",
         "INFO:Done!",
         "INFO:Downloading media...",
@@ -155,6 +158,7 @@ def test_upload_to_s3_bucket(
     )
 
     assert logs.messages == [
+        f"INFO:Creating backup for tenant mirumee.com into s3://tenants_dumps/tenant_backup.tar",
         "INFO:Dumping database...",
         "INFO:Done!",
         "INFO:Downloading media...",
@@ -202,6 +206,7 @@ def test_save_to_local(
     )
 
     assert logs.messages == [
+        f"INFO:Creating backup for tenant mirumee.com into {str(wanted_archive_path)}",
         "INFO:Dumping database...",
         "INFO:Done!",
         "INFO:Downloading media...",

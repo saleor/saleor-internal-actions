@@ -61,7 +61,7 @@ class Command(BaseCommand):
     def _get_dump_from_s3(self, *, opts: S3Options) -> None:
         s3_client: Client = boto3.client("s3")
         with tempfile.TemporaryDirectory() as tmp:
-            temp_path = os.path.join(tmp, 'backup')
+            temp_path = os.path.join(tmp, "backup")
             s3_client.download_file(Filename=temp_path, **opts)
             self._manager.extract_all(archive_path=temp_path)
 
@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
         try:
             if isinstance(location, S3Options):
-                logger.info(f"Retrieving archive from {location}...")
+                logger.info("Retrieving archive from %s...", location)
                 self._get_dump_from_s3(opts=location)
             elif isinstance(location, Path):
                 self._get_dump_from_local(path=location)
@@ -99,12 +99,12 @@ class Command(BaseCommand):
         target_schema = connection.tenant.schema_name
 
         logger.info("Loading backup...")
-        sql_dump = SqlManager(sql_dump_filename)
+        sql_dump = SqlManager(sql_dump_filename, source_schema, target_schema)
 
         logger.info(
             f"Replacing schema name in backup: {source_schema} -> {target_schema}"
         )
-        sql_dump.update(source_schema, target_schema)
+        sql_dump.update()
 
         self._drop_schema(target_schema)
         self._execute_sql_dump(sql_dump_filename)
@@ -126,7 +126,9 @@ class Command(BaseCommand):
         call_command("migrate_schemas", schema_name=connection.tenant.schema_name)
 
     def _run_media_restore(self):
+        logger.info("Uploading media...")
         MediaManager(self._manager.media_dir).upload()
+        logger.info("Done!")
 
     @staticmethod
     def _update_tenant_site_domain():
