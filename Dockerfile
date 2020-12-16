@@ -15,7 +15,7 @@ RUN apt-get update \
     python-psycopg2 \
     python-pycurl \
     python-dev \
-    postgresql-client
+    postgresql-client-11
 
 ARG VERSION
 ENV PROJECT_VERSION $VERSION
