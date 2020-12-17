@@ -24,7 +24,7 @@ services:
     env_file: ./common.env
 
   db:
-    image: library/postgres:11.1-alpine
+    image: library/postgres:11-alpine
     ports:
       - 5432:5432
     restart: unless-stopped
@@ -88,7 +88,7 @@ services:
   dd-agent:
     image: gcr.io/datadoghq/agent:7
     ports:
-    - "8126:8126/tcp"
+      - "8126:8126/tcp"
     environment:
       DD_APM_ENABLED: "true"
       DD_BIND_HOST: "0.0.0.0"

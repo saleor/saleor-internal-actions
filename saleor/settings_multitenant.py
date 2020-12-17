@@ -95,8 +95,12 @@ if AWS_MEDIA_BUCKET_NAME:
 # Celery SQS
 
 CELERY_QUEUE_PREFIX = os.environ.get("CELERY_QUEUE_PREFIX", None)
+CELERY_QUEUE_REGION = os.environ.get("CELERY_QUEUE_REGION", "us-east-1")
 if CELERY_QUEUE_PREFIX:
-    CELERY_BROKER_TRANSPORT_OPTIONS = {"queue_name_prefix": CELERY_QUEUE_PREFIX}
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        "queue_name_prefix": CELERY_QUEUE_PREFIX,
+        "region": CELERY_QUEUE_REGION,
+    }
 
 # Other
 
