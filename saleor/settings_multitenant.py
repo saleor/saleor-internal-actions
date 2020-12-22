@@ -52,6 +52,7 @@ TENANT_MODEL = "tenants.Tenant"
 # False  ---  N_Queries * 2
 #
 TENANT_LIMIT_SET_CALLS = get_bool_from_env("TENANT_LIMIT_SET_QUERIES", True)
+ROOT_URLCONF = "tenants.urls"
 
 TENANT_APPS = [*INSTALLED_APPS, "saleor.multitenancy"]
 SHARED_APPS = [
