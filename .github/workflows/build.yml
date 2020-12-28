@@ -29,15 +29,18 @@ jobs:
           branch=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch" == "$MASTER_BRANCH_NAME" ]]; then
             image_version="${version}-${hash}"
-            tags="${repo}:latest
-                  ${repo}:${version}
-                  ${repo}:${image_version}"
+            echo "tags<<EOF" >> $GITHUB_ENV
+            echo "${repo}:latest" >> $GITHUB_ENV
+            echo "${repo}:${version}" >> $GITHUB_ENV
+            echo "${repo}:${image_version}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           else
             branch=$(echo $branch | sed 's@/@-@g')
             image_version="${version}-${hash}-${branch}"
             tags="${repo}:${image_version}"
+            echo "tags=$tags" >> $GITHUB_ENV
           fi
-          echo "tags=$tags" >> $GITHUB_ENV
+
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${repo}:${image_version}" >> $GITHUB_ENV
 
