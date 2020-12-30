@@ -1,4 +1,4 @@
-name: saleor-multitenant
+name: Build and deploy
 on:
   - push
 jobs:
