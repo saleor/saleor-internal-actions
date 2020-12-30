@@ -23,6 +23,8 @@ jobs:
           docker run -d -p 5000:5000 --restart=always --name registry -v /tmp/docker-registry:/var/lib/registry registry:2 && npx wait-on tcp:5000
       - name: Prepare Environment
         run: |
+          set -x
+
           repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
           version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
           hash=$(git rev-parse --short HEAD)
@@ -47,7 +49,11 @@ jobs:
       - name: Build
         run: |
           env
-          docker build . -t multitenant_api --cache-from=localhost:5000/multitenant_api --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg STATIC_URL="/static/" --build-arg IMAGE_VERSION=$IMAGE_VERSION
+          docker build . -t multitenant_api \
+            --cache-from=localhost:5000/multitenant_api \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --build-arg STATIC_URL="/static/" \
+            --build-arg IMAGE_VERSION=$IMAGE_VERSION
       - name: Cache Image
         run: |
           docker tag multitenant_api localhost:5000/multitenant_api
@@ -55,7 +61,7 @@ jobs:
         if: steps.cache-docker.outputs.cache-hit != 'true'
       - name: Test
         run: |
-          docker-compose --project-name multitenant run --rm api pytest -n 0
+          docker-compose --project-name multitenant run --rm api pytest
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -74,6 +80,8 @@ jobs:
           done
       - name: Deploy to Staging
         run: |
+          set -x
+
           if [[ "$(git rev-parse --abbrev-ref HEAD)" != "$MASTER_BRANCH_NAME" ]]; then
             echo "Not on master, skipping deployment"
             exit 0
