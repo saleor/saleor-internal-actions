@@ -1,0 +1,92 @@
+name: Build and deploy core to staging
+on:
+  schedule:
+    # Every workday (MON-FRI) at 10am and 4pm UTC
+    - cron: '0 10,16 * * 1-5'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    env:
+      DEPLOY_CLUSTER_NAME: saleor-cloud
+      STAGING_K8S_NAMESPACE: cloud-staging
+      STAGING_DEPLOYMENT_NAME: saleor-master-staging
+      AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_staging_ns
+      DOCKER_BUILDKIT: '1'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: 3.0/master
+      - uses: actions/checkout@v2
+        with:
+          repository: mirumee/saleor
+          path: core
+      - id: cache-docker
+        uses: actions/cache@v1
+        with:
+          path: /tmp/docker-registry
+          key: docker-registry-${{ hashFiles('Dockerfile') }}
+      - name: Setup Local Registry
+        run: |
+          docker run -d -p 5000:5000 --restart=always --name registry -v /tmp/docker-registry:/var/lib/registry registry:2 && npx wait-on tcp:5000
+      - name: Prepare Environment
+        run: |
+          set -x
+
+          deployment_repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
+          version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
+          multitenant_hash=$(git rev-parse --short HEAD)
+          core_hash=$(git -C core rev-parse --short HEAD)
+
+          image_version="${version}-${multitenant_hash}-master-${core_hash}"
+
+          echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${deployment_repo}:${image_version}" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          docker pull mirumee/saleor:master
+
+          docker build . -t multitenant_api \
+              --cache-from=localhost:5000/multitenant_api \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg UPSTREAM=mirumee/saleor \
+              --build-arg VERSION=master \
+              --build-arg STATIC_URL="/static/" \
+              --build-arg IMAGE_VERSION=$IMAGE_VERSION
+      - name: Cache Image
+        run: |
+          docker tag multitenant_api localhost:5000/multitenant_api
+          docker push localhost:5000/multitenant_api
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+      - name: Test
+        run: |
+          docker-compose --project-name multitenant run --rm api pytest
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Push to ECR
+        run: |
+          set -x
+
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 727618530289.dkr.ecr.us-east-1.amazonaws.com
+
+          docker tag multitenant_api $IMAGE_TAG
+          docker push $IMAGE_TAG
+      - name: Deploy to Staging
+        run: |
+          set -x
+
+          aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
+
+          kubectl patch deployment "$STAGING_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+          kubectl patch deployment "$(echo $STAGING_DEPLOYMENT_NAME | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+
+          kubectl wait --for=condition=ready pod -l app="$STAGING_DEPLOYMENT_NAME" -n "$STAGING_K8S_NAMESPACE" --timeout 10m
+          sleep 20
+
+          pod_name=$(kubectl get pod -l app="$STAGING_DEPLOYMENT_NAME" --field-selector=status.phase=Running -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
+          kubectl exec -n "$STAGING_K8S_NAMESPACE" $pod_name -- ./manage.py migrate_schemas
