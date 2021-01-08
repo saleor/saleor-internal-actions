@@ -1,5 +1,5 @@
 diff --git a/saleor/core/jwt.py b/saleor/core/jwt.py
-index 69d5dbd04..d53d26184 100644
+index aeed424ed..722bf5585 100644
 --- a/saleor/core/jwt.py
 +++ b/saleor/core/jwt.py
 @@ -5,6 +5,7 @@ import graphene
@@ -29,15 +29,16 @@ index 69d5dbd04..d53d26184 100644
      return payload
  
  
-@@ -51,16 +60,17 @@ def jwt_user_payload(
- 
+@@ -52,7 +61,7 @@ def jwt_user_payload(
  def jwt_encode(payload: Dict[str, Any]) -> str:
      return jwt.encode(
--        payload, settings.SECRET_KEY, JWT_ALGORITHM,  # type: ignore
-+        payload, jwt_secret(), JWT_ALGORITHM,  # type: ignore
+         payload,
+-        settings.SECRET_KEY,  # type: ignore
++        jwt_secret(),
+         JWT_ALGORITHM,
      ).decode("utf-8")
  
- 
+@@ -60,9 +69,10 @@ def jwt_encode(payload: Dict[str, Any]) -> str:
  def jwt_decode(token: str) -> Dict[str, Any]:
      return jwt.decode(
          token,
@@ -45,7 +46,7 @@ index 69d5dbd04..d53d26184 100644
 +        jwt_secret(),
          algorithms=JWT_ALGORITHM,
          verify_expiration=settings.JWT_EXPIRE,
-+        issuer=jwt_issuer()
++        issuer=jwt_issuer(),
      )
  
  
