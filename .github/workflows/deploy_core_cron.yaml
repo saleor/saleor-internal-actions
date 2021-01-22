@@ -90,3 +90,44 @@ jobs:
 
           pod_name=$(kubectl get pod -l app="$STAGING_DEPLOYMENT_NAME" --field-selector=status.phase=Running -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
           kubectl exec -n "$STAGING_K8S_NAMESPACE" $pod_name -- ./manage.py migrate_schemas
+      - name: Notify slack
+        if: ${{ always() }}
+        env:
+          PASSED: ${{ success() }}
+          WEBHOOK_URL: ${{ secrets.SLACK_ERRORS_STAGING_WEBHOOK_URL }}
+        run: |
+          if $PASSED; then
+            body=$(cat <<EOF
+            {
+              "attachments": [
+                    {
+                        "fallback": "Successfully deployed core master to staging",
+                        "pretext": "Core master deployment to cloud-staging",
+                        "title": "Success!",
+                        "title_link": "https://github.com/saleor/saleor-multitenant/actions?query=workflow%3A%22Build+and+deploy+core+to+staging%22"
+                        "text": "Successfully deployed core master to staging!",
+                        "color": "#2DE02A"
+                    }
+                ]
+              }
+            EOF
+            )
+          else
+            body=$(cat <<EOF
+            {
+              "attachments": [
+                    {
+                        "fallback": "Failed to deploy core master to staging",
+                        "pretext": "Core master deployment to cloud-staging",
+                        "title": "Failure!",
+                        "title_link": "https://github.com/saleor/saleor-multitenant/actions?query=workflow%3A%22Build+and+deploy+core+to+staging%22",
+                        "text": "Failed to deploy core master to staging!",
+                        "color": "#E02A2A"
+                    }
+                ]
+              }
+            EOF
+            )
+          fi
+
+          curl -X POST -H "content-type: application/json" --data "$body" "$WEBHOOK_URL"
