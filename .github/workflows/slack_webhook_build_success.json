@@ -1,12 +1,12 @@
 {
-  "attachments": [
-    {
-      "fallback": "Successfully deployed core master to staging",
-      "pretext": "Core master deployment to cloud-staging",
-      "title": "Success!",
-      "title_link": "https://github.com/saleor/saleor-multitenant/actions?query=workflow%3A%22Build+and+deploy+core+to+staging%22"
-      "text": "Successfully deployed core master to staging!",
-      "color": "#2DE02A"
-    }
-  ]
+    "attachments": [
+        {
+            "fallback": "Successfully deployed core master to staging",
+            "pretext": "Core master deployment to cloud-staging",
+            "title": "Success!",
+            "title_link": "https://github.com/saleor/saleor-multitenant/actions?query=workflow%3A%22Build+and+deploy+core+to+staging%22",
+            "text": "Successfully deployed core master to staging!",
+            "color": "#2DE02A"
+        }
+    ]
 }
