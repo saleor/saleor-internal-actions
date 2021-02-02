@@ -1,0 +1,3 @@
+[submodule "extra-plugins/saleor-plugin-oidc"]
+	path = extra-plugins/saleor-plugin-oidc
+	url = git@github.com:saleor/saleor-plugin-oidc.git
