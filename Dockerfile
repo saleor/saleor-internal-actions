@@ -1,4 +1,4 @@
-ARG VERSION="2.11.6"
+ARG VERSION="2.11.7"
 ARG UPSTREAM="ghcr.io/mirumee/saleor"
 FROM ${UPSTREAM}:${VERSION}
 
