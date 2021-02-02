@@ -2,7 +2,7 @@ from tenant_schemas.middleware import TenantMiddleware
 
 
 class SaleorTenantMiddleware(TenantMiddleware):
-    EXCLUDED_PATHS = ["/live/"]
+    EXCLUDED_PATHS = []
 
     def process_request(self, request):
         if request.path in SaleorTenantMiddleware.EXCLUDED_PATHS:
