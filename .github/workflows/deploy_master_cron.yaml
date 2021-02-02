@@ -1,8 +1,8 @@
-name: Build and deploy core to staging
+name: Build and deploy master staging
 on:
   schedule:
     # Every workday (MON-FRI) at 10am and 4pm UTC
-    - cron: '0 10,16 * * 1-5'
+    - cron: "0 10,16 * * 1-5"
   workflow_dispatch:
 jobs:
   build:
@@ -10,13 +10,13 @@ jobs:
     env:
       DEPLOY_CLUSTER_NAME: saleor-cloud
       STAGING_K8S_NAMESPACE: cloud-staging
-      STAGING_DEPLOYMENT_NAME: saleor-master-staging
+      MASTER_DEPLOYMENT_NAME: saleor-master-staging
       AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_staging_ns
-      DOCKER_BUILDKIT: '1'
+      DOCKER_BUILDKIT: "1"
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: 3.0/master
+          ref: master
       - uses: actions/checkout@v2
         with:
           repository: mirumee/saleor
@@ -76,19 +76,19 @@ jobs:
 
           docker tag multitenant_api $IMAGE_TAG
           docker push $IMAGE_TAG
-      - name: Deploy to Staging
+      - name: Deploy to Master Staging
         run: |
           set -x
 
           aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
 
-          kubectl patch deployment "$STAGING_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
-          kubectl patch deployment "$(echo $STAGING_DEPLOYMENT_NAME | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+          kubectl patch deployment "$MASTER_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
+          kubectl patch deployment "$(echo $MASTER_DEPLOYMENT_NAME | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$STAGING_K8S_NAMESPACE"
 
-          kubectl wait --for=condition=ready pod -l app="$STAGING_DEPLOYMENT_NAME" -n "$STAGING_K8S_NAMESPACE" --timeout 10m
+          kubectl wait --for=condition=ready pod -l app="$MASTER_DEPLOYMENT_NAME" -n "$STAGING_K8S_NAMESPACE" --timeout 10m
           sleep 20
 
-          pod_name=$(kubectl get pod -l app="$STAGING_DEPLOYMENT_NAME" --field-selector=status.phase=Running -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
+          pod_name=$(kubectl get pod -l app="$MASTER_DEPLOYMENT_NAME" --field-selector=status.phase=Running -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
           kubectl exec -n "$STAGING_K8S_NAMESPACE" $pod_name -- ./manage.py migrate_schemas
       - name: Notify slack
         if: ${{ always() }}
