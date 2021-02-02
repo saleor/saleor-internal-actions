@@ -37,20 +37,31 @@ jobs:
             echo "${repo}:${image_version}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
-            branch=$(echo $branch | sed 's@/@-@g')
-            image_version="${version}-${hash}-${branch}"
+            branch_slug=$(echo $branch | sed 's@/@-@g')
+            image_version="${version}-${hash}-${branch_slug}"
             tags="${repo}:${image_version}"
             echo "tags=$tags" >> $GITHUB_ENV
           fi
 
+          echo "BRANCH=${branch}" >> $GITHUB_ENV
+          echo "CORE_VERSION=${version}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${repo}:${image_version}" >> $GITHUB_ENV
 
       - name: Build
         run: |
           env
+          if [[ "$BRANCH" == "master" ]]; then
+            upstream="mirumee/saleor"
+            version="master"
+          else
+            upstream="ghcr.io/mirumee/saleor"
+            version="$CORE_VERSION"
+          fi
           docker build . -t multitenant_api \
             --cache-from=localhost:5000/multitenant_api \
+            --build-arg UPSTREAM="$upstream" \
+            --build-arg VERSION="$version" \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg STATIC_URL="/static/" \
             --build-arg IMAGE_VERSION=$IMAGE_VERSION

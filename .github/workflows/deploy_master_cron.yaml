@@ -43,6 +43,11 @@ jobs:
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${deployment_repo}:${image_version}" >> $GITHUB_ENV
 
+          echo "tags<<EOF" >> $GITHUB_ENV
+          echo "${deployment_repo}:master" >> $GITHUB_ENV
+          echo "${deployment_repo}:${image_version}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Build
         run: |
           docker pull mirumee/saleor:master
@@ -74,8 +79,11 @@ jobs:
 
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 727618530289.dkr.ecr.us-east-1.amazonaws.com
 
-          docker tag multitenant_api $IMAGE_TAG
-          docker push $IMAGE_TAG
+          for tag in ${tags}; do
+            docker tag multitenant_api $tag
+            docker push $tag
+          done
+
       - name: Deploy to Master Staging
         run: |
           set -x
