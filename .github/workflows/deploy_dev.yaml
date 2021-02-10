@@ -1,0 +1,47 @@
+name: Deploy to dev
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+
+jobs:
+  deploy:
+    name: Deploy to dev env for labeled pull requests
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'dev deployment') }}
+    runs-on: ubuntu-20.04
+    env:
+      AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_dev_ns
+      DEPLOY_CLUSTER_NAME: saleor-cloud
+      DEV_K8S_NAMESPACE: cloud-dev
+      DEV_DEPLOYMENT_NAME: saleor-dev
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Get Image Details
+        run: |
+          set -x
+
+          repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
+          version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
+          hash=$(git rev-parse --short HEAD)
+          branch=$(git rev-parse --abbrev-ref HEAD | sed 's@/@-@g')
+
+          image_version="${version}-${hash}-${branch}"
+
+          echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${repo}:${image_version}" >> $GITHUB_ENV
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy
+        run: |
+          set -x
+
+          aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
+          
+          kubectl patch deployment "$DEV_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$DEV_K8S_NAMESPACE"
+          kubectl patch deployment "$(echo $DEV_DEPLOYMENT_NAME | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$DEV_K8S_NAMESPACE"
