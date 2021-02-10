@@ -1,0 +1,40 @@
+# This file runs a DataDog agent with DogStatsD
+# listening with UDS at /var/run/datadog/dsd.socket on a volume (dogstatsd-metric-exporter_sockets)
+#
+# It runs an example application that is useful for development (refer to ./example).
+version: "2.2"
+
+services:
+  example:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    ports:
+    - 5542:5542
+    depends_on:
+      - dd-agent
+    volumes:
+      - sockets:/var/run/datadog
+
+  # Versions:
+  # docker run --rm quay.io/skopeo/stable list-tags docker://gcr.io/datadoghq/agent
+  dd-agent:
+    image: gcr.io/datadoghq/agent:7
+    ports:
+      - 8126:8126/tcp
+    environment:
+      DD_APM_ENABLED: "true"
+      DD_BIND_HOST: "0.0.0.0"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "false"
+      DD_DOGSTATSD_SOCKET: /var/run/datadog/dsd.socket
+    volumes:
+      - sockets:/var/run/datadog
+    # Uncomment if testing is needed against a real API key.
+    # Syntax of the file is: DD_API_KEY=foo
+    # --
+    # env_file: .apikey
+
+volumes:
+  sockets:
+    driver: local

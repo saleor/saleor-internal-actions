@@ -1,0 +1,59 @@
+name: "Tests: DogStatsD"
+
+on:
+  push:
+    paths:
+      - dogstatsd-metric-exporter/**
+      - .github/workflows/test-dogstatsd-metric-exporter.yaml
+
+defaults:
+  run:
+    shell: bash
+    working-directory: dogstatsd-metric-exporter/
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install Development
+        run: python -m pip install -e .'[tests]'
+
+      - name: Tests
+        run: |
+          python -m pytest \
+            --cov=dogstatsd_metric_exporter \
+            --cov-report=html:/tmp/cov-html \
+            --cov-report=xml:/tmp/cov.xml \
+            --junitxml=/tmp/junit/test-results.xml
+
+      - name: Print Coverage Results
+        run: python -m coverage report
+
+      - name: Upload Coverage (HTML)
+        uses: actions/upload-artifact@v1
+        with:
+          name: pytest-cov-html
+          path: /tmp/cov-html
+        if: ${{ always() }}
+
+      - name: Upload Coverage (XML)
+        uses: actions/upload-artifact@v1
+        with:
+          name: pytest-cov.xml
+          path: /tmp/cov.xml
+        if: ${{ always() }}
+
+      - name: Upload Test Results (XML)
+        uses: actions/upload-artifact@v1
+        with:
+          name: pytest-junit-results.xml
+          path: /tmp/junit/test-results.xml
+        if: ${{ always() }}
