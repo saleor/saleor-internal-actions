@@ -7,7 +7,8 @@ from django.core.exceptions import SuspiciousOperation
 from django.core.files.storage import FileSystemStorage
 from django.db import connection
 from django.utils.encoding import filepath_to_uri
-from storages.utils import safe_join
+from storages.utils import safe_join, setting
+
 from tenant_schemas.storage import TenantStorageMixin
 from saleor.core.storages import S3MediaStorage
 
@@ -73,6 +74,11 @@ class TenantAwareStorage(TenantStorageMixin):
 
 
 class TenantS3MediaStorage(TenantAwareStorage, S3MediaStorage):
+
+    # Override S3MediaStorage(S3Boto3Storage) location setting from AWS_LOCATION env variable
+    # Allows to use different s3 prefix for media and static storage.
+    location = setting("AWS_MEDIA_LOCATION", "")
+
     def url(self, name, parameters=None, expire=None):
         name = self._normalize_resource_name("media", self._clean_name(name))
         return "%s//%s/%s" % (
