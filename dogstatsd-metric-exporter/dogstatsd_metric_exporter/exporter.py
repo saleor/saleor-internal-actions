@@ -153,7 +153,7 @@ class DogStatsDMetricsExporter(MetricsExporter):
         packets_sent = 1
         bytes_sent = len(packet)
 
-        if self._client._xmit_packet(packet, telemetry=True) is False:
+        if self._client._xmit_packet(packet, True) is False:
             raise RuntimeError(E_FAILED_SEND_PACKET)
 
         logger.debug("Sent %d packets (%d bytes)", packets_sent, bytes_sent)

@@ -27,11 +27,21 @@ DEFAULT_TEST_TENANT = {
         "http://test.com",
         "http://www.test.com",
     ],
+    "project_id": 23,
+    "max_channel_count": -1,
+    "max_staff_user_count": -1,
+    "max_warehouse_count": -1,
+    "max_sku_count": -1,
 }
 
 OTHER_TEST_TENANT = {
     "schema_name": "example",
     "domain_url": _get_tenant_domain("othertenant"),
+    "project_id": 54,
+    "max_channel_count": 2,
+    "max_staff_user_count": 3,
+    "max_warehouse_count": 4,
+    "max_sku_count": 5,
 }
 
 

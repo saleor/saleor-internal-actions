@@ -20,6 +20,7 @@ RUN apt-get update \
 ARG VERSION
 ENV PROJECT_VERSION $VERSION
 
+ADD dogstatsd-metric-exporter/ dogstatsd-metric-exporter/
 ADD requirements.txt /tmp
 RUN pip install -r /tmp/requirements.txt
 

@@ -45,8 +45,8 @@ def test_send_records(meter, resource, exporter, mock_flush, mocked_xmit_packet)
     assert mocked_flush.call_count == 2
     mocked_xmit_packet.assert_has_calls(
         [
-            unittest.mock.call(record1_formatted, telemetry=True),
-            unittest.mock.call(record2_formatted, telemetry=True),
+            unittest.mock.call(record1_formatted, True),
+            unittest.mock.call(record2_formatted, True),
         ]
     )
 

@@ -15,11 +15,13 @@ services:
     depends_on:
       - db
       - redis
+      - dd-agent
     volumes:
       # - ./tenants/:/app/tenants:Z
       - /app/saleor/static/assets
       - /app/templates/templated_email/compiled
       - saleor-media:/app/media
+      - sockets:/var/run/datadog
     command: python manage.py runserver 0.0.0.0:8000
     env_file: ./common.env
 
@@ -89,10 +91,17 @@ services:
     image: gcr.io/datadoghq/agent:7
     ports:
       - "8126:8126/tcp"
+    volumes:
+      - sockets:/var/run/datadog
     environment:
       DD_APM_ENABLED: "true"
       DD_BIND_HOST: "0.0.0.0"
-      DD_API_KEY: unset
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "false"
+      DD_DOGSTATSD_SOCKET: /var/run/datadog/dsd.socket
+    # Uncomment if testing is needed against a real API key.
+    # Syntax of the file is: DD_API_KEY=foo
+    # --
+    # env_file: .apikey
 
   nginx:
     image: nginx
@@ -115,6 +124,8 @@ volumes:
   saleor-redis:
     driver: local
   saleor-media:
+  sockets:
+    driver: local
 
 networks:
   saleor-backend-tier:

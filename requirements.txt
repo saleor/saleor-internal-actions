@@ -9,3 +9,4 @@ sentry-sdk==0.17.6
 tenant-schemas-celery==0.2.1
 uwsgi==2.0.19.1
 ddtrace[opentracing]==0.45.0
+-e ./dogstatsd-metric-exporter

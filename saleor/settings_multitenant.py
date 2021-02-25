@@ -102,6 +102,14 @@ if CELERY_QUEUE_PREFIX:
         "region": CELERY_QUEUE_REGION,
     }
 
+# OpenTelemetry Settings
+#   * OPTL_NAMESPACE: the metrics prefix, e.g. "core" => core.my_counter
+#   * OPTL_UDS_PATH: the Unix Domain Socket path to write to DogStatsD
+#   * OPTL_METRIC_EXPORT_INTERVAL: the collected metrics export interval in seconds
+OPTL_NAMESPACE = os.environ.get("OPTL_NAMESPACE", "core")
+OPTL_UDS_PATH = os.environ.get("OPTL_UDS_PATH", "/var/run/datadog/dsd.socket")
+OPTL_METRIC_EXPORT_INTERVAL = float(os.environ.get("OPTL_METRIC_EXPORT_INTERVAL", 60))
+
 # Other
 
 DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
@@ -114,3 +122,12 @@ if CLOUD_SENTRY_DSN:
     from tenants.sentry import CloudSentry
 
     CloudSentry(PROJECT_VERSION, CLOUD_SENTRY_DSN).init()
+
+
+# Update Graphene Middleware list to include plan limitations
+#
+# IMPORTANT:
+#   The plan limits middleware must not be executed before credentials and permissions
+#   checks as we don't want to expose the limitations directly to non-staff users.
+#   Remember, the middleware execution order is last first, first is last.
+GRAPHENE["MIDDLEWARE"].insert(0, "tenants.limits.middleware.TenantPlanLimitMiddleware")

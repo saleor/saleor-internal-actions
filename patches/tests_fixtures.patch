@@ -16,6 +16,7 @@ index e23e4a8b9..ad8f68655 100644
      "saleor.graphql.tests.fixtures",
      "saleor.graphql.channel.tests.fixtures",
 +    "pytester",
++    "tenants.tests.fixtures",
  ]
 +
 +

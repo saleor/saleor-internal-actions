@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from django.core.management import call_command, CommandError
+from django.core.management import call_command
 from django.db import connection
 from tenants.management.argparse import S3Options
 from tenants.management.commands import createtenant
@@ -14,7 +14,7 @@ CMD = "createtenant"
 @mock.patch.object(createtenant.Command, "_get_dump_from_s3")
 @mock.patch.object(createtenant, "Tenant")
 def test_tenant_is_properly_selected(
-    mocked_tenant, _, mocked_call_command, tenant_connection_keeper
+    mocked_tenant, _, mocked_run_restore_command, tenant_connection_keeper
 ):
     """
     Ensure when backing up, the tenant is set in the connection
@@ -31,7 +31,7 @@ def test_tenant_is_properly_selected(
         assert connection.include_public_schema is True
         assert connection.settings_dict["SCHEMA"] == tenant.schema_name
 
-    mocked_call_command.side_effect = assert_connection_is_properly_configured
+    mocked_run_restore_command.side_effect = assert_connection_is_properly_configured
 
     call_command(CMD, tenant.domain_url, "-r", "s3://dummy/test")
 

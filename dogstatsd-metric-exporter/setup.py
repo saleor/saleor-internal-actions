@@ -10,7 +10,11 @@ def _read_file(path):
         return fp.read().strip()
 
 
-INSTALL_REQUIREMENTS = ["datadog", "opentelemetry-sdk", "opentelemetry-api"]
+INSTALL_REQUIREMENTS = [
+    "datadog",
+    "opentelemetry-sdk>=0.17b0,<1.0.0",
+    "opentelemetry-api>=0.17b0,<1.0.0",
+]
 LINTING_REQUIREMENTS = [
     "black==19.10b0",
     "isort>=5.0.0",

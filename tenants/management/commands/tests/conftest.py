@@ -4,6 +4,8 @@ from unittest import mock
 from uuid import UUID
 
 import pytest
+
+from tenants.limits.models import TenantLimitsMixin
 from tenants.management import gzip_dump_manager
 from tenants.management.commands import backup_tenant, restore_tenant
 
@@ -17,6 +19,10 @@ class LoggingHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         self.messages.append(f"{record.levelname}:{record.msg}" % record.args)
+
+
+def get_limits_fields() -> tuple[str, ...]:
+    return tuple(k for k in TenantLimitsMixin.__dict__ if k.startswith("max_"))
 
 
 @pytest.fixture
