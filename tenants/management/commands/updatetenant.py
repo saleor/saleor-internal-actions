@@ -30,6 +30,7 @@ class Command(BaseCommand):
             help="List of allowed client origins",
             nargs="*",
         )
+        parser.add_argument("--project-id", type=int, help="Set project ID")
 
         # Add billing plan limitation options
         BillingPlanManagement.add_arguments(parser, required=False)
@@ -39,6 +40,7 @@ class Command(BaseCommand):
         *args,
         new_domain: str,
         allowed_client_origins: list,
+        project_id: int = None,
         **options
     ):
         with transaction.atomic():
@@ -54,6 +56,10 @@ class Command(BaseCommand):
             if limits:
                 BillingPlanManagement.set_tenant_limits(tenant, limits)
                 updated_fields += limits.keys()
+
+            if project_id is not None:
+                tenant.project_id = project_id
+                updated_fields.append("project_id")
 
             if new_domain is not None:
                 update_domain(tenant, new_domain)
