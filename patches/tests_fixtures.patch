@@ -1,8 +1,8 @@
 diff --git a/conftest.py b/conftest.py
-index e23e4a8b9..ad8f68655 100644
+index e23e4a8b9..95284697f 100644
 --- a/conftest.py
 +++ b/conftest.py
-@@ -1,6 +1,70 @@
+@@ -1,6 +1,53 @@
 +import pytest
 +from django.db import connection
 +from tenant_schemas.utils import get_tenant_model
@@ -39,16 +39,6 @@ index e23e4a8b9..ad8f68655 100644
 +
 +
 +@pytest.fixture
-+def tenant_connection_keeper(test_tenant):
-+    """
-+    Restore the tenant connection once the wrapped test is over.
-+    Useful when a test or the app changed the tenant connection schema.
-+    """
-+    yield
-+    connection.set_tenant(test_tenant)
-+
-+
-+@pytest.fixture
 +def test_tenant(db):
 +    return get_tenant_model().objects.get(**DEFAULT_TEST_TENANT)
 +
@@ -66,14 +56,6 @@ index e23e4a8b9..ad8f68655 100644
 +@pytest.fixture
 +def other_client(other_tenant):
 +    yield TenantClient(other_tenant)
-+
-+
-+@pytest.fixture
-+def admin_client(test_tenant, admin_user):
-+    """Return a Django test client logged in as an admin user."""
-+    client = TenantClient(test_tenant)
-+    client.login(username=admin_user.email, password="password")
-+    return client
 diff --git a/saleor/graphql/tests/fixtures.py b/saleor/graphql/tests/fixtures.py
 index 422233910..317ab9f18 100644
 --- a/saleor/graphql/tests/fixtures.py
@@ -83,17 +65,17 @@ index 422233910..317ab9f18 100644
  from ..views import handled_errors_logger, unhandled_errors_logger
  from .utils import assert_no_permission
 +from tenants.tests.client import TenantClient
-
+ 
  API_PATH = reverse("api")
  ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin"
 @@ -21,10 +22,11 @@ ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
  ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods"
-
-
+ 
+ 
 -class ApiClient(Client):
 +class TenantApiClient(TenantClient):
      """GraphQL API client."""
-
+ 
      def __init__(self, *args, **kwargs):
 +        super().__init__(*args, **kwargs)
          user = kwargs.pop("user", AnonymousUser())
@@ -110,12 +92,12 @@ index 422233910..317ab9f18 100644
              token = app.tokens.first()
              self.app_token = token.auth_token if token else None
 -        super().__init__(*args, **kwargs)
-
+ 
      def _base_environ(self, **request):
          environ = super()._base_environ(**request)
 @@ -117,28 +116,33 @@ class ApiClient(Client):
-
-
+ 
+ 
  @pytest.fixture
 -def app_api_client(app):
 -    return ApiClient(app=app)
@@ -126,42 +108,42 @@ index 422233910..317ab9f18 100644
 +@pytest.fixture
 +def staff_api_client(test_tenant, staff_user):
 +    return TenantApiClient(test_tenant, user=staff_user)
-
-
+ 
+ 
  @pytest.fixture
 -def staff_api_client(staff_user):
 -    return ApiClient(user=staff_user)
 +def superuser_api_client(test_tenant, superuser):
 +    return TenantApiClient(test_tenant, user=superuser)
-
-
+ 
+ 
  @pytest.fixture
 -def superuser_api_client(superuser):
 -    return ApiClient(user=superuser)
 +def user_api_client(test_tenant, customer_user):
 +    return TenantApiClient(test_tenant, user=customer_user)
-
-
+ 
+ 
  @pytest.fixture
 -def user_api_client(customer_user):
 -    return ApiClient(user=customer_user)
 +def api_client(test_tenant):
 +    return TenantApiClient(test_tenant, user=AnonymousUser())
-
-
+ 
+ 
  @pytest.fixture
 -def api_client():
 -    return ApiClient(user=AnonymousUser())
 +def other_tenant_api_client(other_tenant):
 +    return TenantApiClient(other_tenant, user=AnonymousUser)
-
-
+ 
+ 
  @pytest.fixture
 diff --git a/saleor/tests/fixtures.py b/saleor/tests/fixtures.py
-index 332572b97..5c13e64df 100644
+index 571b4020d..61f68ec68 100644
 --- a/saleor/tests/fixtures.py
 +++ b/saleor/tests/fixtures.py
-@@ -219,12 +219,13 @@ def site_settings(db, settings) -> SiteSettings:
+@@ -224,12 +224,13 @@ def site_settings(db, settings) -> SiteSettings:
      saleor.site.models.SiteSettings have a one-to-one relationship and a site
      should never exist without a matching settings object.
      """
@@ -177,9 +159,9 @@ index 332572b97..5c13e64df 100644
      )[0]
 +
      settings.SITE_ID = site.pk
-
+ 
      main_menu = Menu.objects.get_or_create(
-@@ -237,6 +238,8 @@ def site_settings(db, settings) -> SiteSettings:
+@@ -242,6 +243,8 @@ def site_settings(db, settings) -> SiteSettings:
      )[0]
      obj.top_menu = main_menu
      obj.bottom_menu = secondary_menu
