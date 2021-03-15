@@ -57,31 +57,39 @@ index e23e4a8b9..95284697f 100644
 +def other_client(other_tenant):
 +    yield TenantClient(other_tenant)
 diff --git a/saleor/graphql/tests/fixtures.py b/saleor/graphql/tests/fixtures.py
-index 422233910..317ab9f18 100644
+index 422233910b..8ace0dd446 100644
 --- a/saleor/graphql/tests/fixtures.py
 +++ b/saleor/graphql/tests/fixtures.py
-@@ -13,6 +13,7 @@ from ...core.jwt import create_access_token
+@@ -5,6 +5,7 @@ import graphene
+ import pytest
+ from django.contrib.auth.models import AnonymousUser
+ from django.core.serializers.json import DjangoJSONEncoder
++from django.db import connection
+ from django.shortcuts import reverse
+ from django.test.client import MULTIPART_CONTENT, Client
+
+@@ -13,6 +14,7 @@ from ...core.jwt import create_access_token
  from ...tests.utils import flush_post_commit_hooks
  from ..views import handled_errors_logger, unhandled_errors_logger
  from .utils import assert_no_permission
 +from tenants.tests.client import TenantClient
- 
+
  API_PATH = reverse("api")
  ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin"
-@@ -21,10 +22,11 @@ ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
+@@ -21,10 +23,11 @@ ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers"
  ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods"
- 
- 
+
+
 -class ApiClient(Client):
 +class TenantApiClient(TenantClient):
      """GraphQL API client."""
- 
+
      def __init__(self, *args, **kwargs):
 +        super().__init__(*args, **kwargs)
          user = kwargs.pop("user", AnonymousUser())
          app = kwargs.pop("app", None)
          self._user = None
-@@ -32,12 +34,9 @@ class ApiClient(Client):
+@@ -32,12 +35,9 @@ class ApiClient(Client):
          self.user = user
          self.app_token = None
          self.app = app
@@ -92,52 +100,46 @@ index 422233910..317ab9f18 100644
              token = app.tokens.first()
              self.app_token = token.auth_token if token else None
 -        super().__init__(*args, **kwargs)
- 
+
      def _base_environ(self, **request):
          environ = super()._base_environ(**request)
-@@ -117,28 +116,33 @@ class ApiClient(Client):
- 
- 
+@@ -118,27 +118,32 @@ class ApiClient(Client):
+
  @pytest.fixture
--def app_api_client(app):
+ def app_api_client(app):
 -    return ApiClient(app=app)
-+def app_api_client(test_tenant, app):
-+    return TenantApiClient(test_tenant, app=app)
++    return TenantApiClient(connection.tenant, app=app)
+
+
+ @pytest.fixture
+ def staff_api_client(staff_user):
+-    return ApiClient(user=staff_user)
++    return TenantApiClient(connection.tenant, user=staff_user)
+
+
+ @pytest.fixture
+ def superuser_api_client(superuser):
+-    return ApiClient(user=superuser)
++    return TenantApiClient(connection.tenant, user=superuser)
+
+
+ @pytest.fixture
+ def user_api_client(customer_user):
+-    return ApiClient(user=customer_user)
++    return TenantApiClient(connection.tenant, user=customer_user)
+
+
+ @pytest.fixture
+ def api_client():
+-    return ApiClient(user=AnonymousUser())
++    return TenantApiClient(connection.tenant, user=AnonymousUser())
 +
 +
 +@pytest.fixture
-+def staff_api_client(test_tenant, staff_user):
-+    return TenantApiClient(test_tenant, user=staff_user)
- 
- 
- @pytest.fixture
--def staff_api_client(staff_user):
--    return ApiClient(user=staff_user)
-+def superuser_api_client(test_tenant, superuser):
-+    return TenantApiClient(test_tenant, user=superuser)
- 
- 
- @pytest.fixture
--def superuser_api_client(superuser):
--    return ApiClient(user=superuser)
-+def user_api_client(test_tenant, customer_user):
-+    return TenantApiClient(test_tenant, user=customer_user)
- 
- 
- @pytest.fixture
--def user_api_client(customer_user):
--    return ApiClient(user=customer_user)
-+def api_client(test_tenant):
-+    return TenantApiClient(test_tenant, user=AnonymousUser())
- 
- 
- @pytest.fixture
--def api_client():
--    return ApiClient(user=AnonymousUser())
 +def other_tenant_api_client(other_tenant):
 +    return TenantApiClient(other_tenant, user=AnonymousUser)
- 
- 
+
+
  @pytest.fixture
 diff --git a/saleor/tests/fixtures.py b/saleor/tests/fixtures.py
 index 571b4020d..61f68ec68 100644
