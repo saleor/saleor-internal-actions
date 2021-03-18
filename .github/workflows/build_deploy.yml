@@ -51,13 +51,13 @@ jobs:
       - name: Build
         run: |
           env
-          if [[ "$BRANCH" == "master" ]]; then
+          # if [[ "$BRANCH" == "master" ]]; then
             upstream="mirumee/saleor"
             version="master"
-          else
-            upstream="ghcr.io/mirumee/saleor"
-            version="$CORE_VERSION"
-          fi
+          # else
+          #   upstream="ghcr.io/mirumee/saleor"
+          #   version="$CORE_VERSION"
+          # fi
           docker build . -t multitenant_api \
             --cache-from=localhost:5000/multitenant_api \
             --build-arg UPSTREAM="$upstream" \

@@ -6,11 +6,11 @@ index 5c1bcea68..ba273e1c2 100644
              data = add_channel_to_expected_variant_data(data, variant, channel_ids)
 
              expected_data.append(data)
-+    expected_data[0]["images__image"] = expected_data[0]["images__image"].replace(
++    expected_data[0]["media__image"] = expected_data[0]["media__image"].replace(
 +        "http://mirumee.com/media/mirumee.com/", "http://mirumee.com/media/"
 +    )
-+    expected_data[0]["variants__images__image"] = expected_data[0][
-+        "variants__images__image"
++    expected_data[0]["variants__media__image"] = expected_data[0][
++        "variants__media__image"
 +    ].replace("http://mirumee.com/media/mirumee.com/", "http://mirumee.com/media/")
      assert result_data == expected_data
 
