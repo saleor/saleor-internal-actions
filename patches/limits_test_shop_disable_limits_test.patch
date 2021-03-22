@@ -1,0 +1,12 @@
+diff --git a/saleor/graphql/shop/tests/test_shop.py b/saleor/graphql/shop/tests/test_shop.py
+index e7d1639f05..50a9c01d37 100644
+--- a/saleor/graphql/shop/tests/test_shop.py
++++ b/saleor/graphql/shop/tests/test_shop.py
+@@ -1320,6 +1320,7 @@ def test_cannot_get_shop_limit_info_when_not_staff(user_api_client):
+     assert_no_permission(response)
+
+
++@pytest.mark.skip(reason="Implemented in tenants.limits.graphql")
+ def test_get_shop_limit_info_returns_null_by_default(staff_api_client):
+     query = LIMIT_INFO_QUERY
+     response = staff_api_client.post_graphql(query)

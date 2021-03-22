@@ -2,7 +2,7 @@ import dataclasses
 from typing import Any, Callable, Dict, Optional, Union
 
 from django.db import connection
-from django.db.models import Manager, Q, QuerySet
+from django.db.models import Manager, QuerySet
 from graphql import ResolveInfo
 from graphql.language.ast import Field
 

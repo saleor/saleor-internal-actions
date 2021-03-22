@@ -1,0 +1,43 @@
+diff --git a/saleor/graphql/shop/types.py b/saleor/graphql/shop/types.py
+index 36530897d7..82c120f086 100644
+--- a/saleor/graphql/shop/types.py
++++ b/saleor/graphql/shop/types.py
+@@ -7,6 +7,8 @@ from django_countries import countries
+ from django_prices_vatlayer.models import VAT
+ from phonenumbers import COUNTRY_CODE_TO_REGION_CODE
+
++from tenants.limits.graphql import resolvers as limit_resolvers
++
+ from ... import __version__
+ from ...account import models as account_models
+ from ...core.permissions import SitePermissions, get_permissions
+@@ -68,13 +70,16 @@ class ExternalAuthentication(graphene.ObjectType):
+     name = graphene.String(description="Name of external authentication plugin.")
+
+
+-class Limits(graphene.ObjectType):
++class Limits(limit_resolvers.LimitType, graphene.ObjectType):
+     channels = graphene.Int()
+     orders = graphene.Int()
+     product_variants = graphene.Int()
+     staff_users = graphene.Int()
+     warehouses = graphene.Int()
+
++    class Meta:
++        default_resolver = limit_resolvers.default_resolver
++
+
+ class LimitInfo(graphene.ObjectType):
+     current_usage = graphene.Field(
+@@ -369,7 +374,10 @@ class Shop(graphene.ObjectType):
+     @staticmethod
+     @staff_member_required
+     def resolve_limits(_, _info):
+-        return LimitInfo(current_usage=Limits(), allowed_usage=Limits())
++        return LimitInfo(
++            current_usage=Limits(resolver=limit_resolvers.CurrentUsageResolver),
++            allowed_usage=Limits(resolver=limit_resolvers.AllowedUsageResolver),
++        )
+
+     @staticmethod
+     @staff_member_or_app_required
