@@ -25,58 +25,21 @@ jobs:
           repository: mirumee/saleor
           path: core
 
-      - id: cache-docker
-        uses: actions/cache@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
         with:
-          path: /tmp/docker-registry
-          key: docker-registry-${{ hashFiles('Dockerfile') }}
+          install: true
 
-      - name: Setup Local Registry
-        run: |
-          docker run -d -p 5000:5000 --restart=always --name registry -v /tmp/docker-registry:/var/lib/registry registry:2 && npx wait-on tcp:5000
-
-      - name: Prepare Environment
-        run: |
-          set -x
-
-          deployment_repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
-          version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
-          multitenant_hash=$(git rev-parse --short HEAD)
-          core_hash=$(git -C core rev-parse --short HEAD)
-
-          image_version="${version}-${multitenant_hash}-master-${core_hash}"
-
-          echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${deployment_repo}:${image_version}" >> $GITHUB_ENV
-
-          echo "tags<<EOF" >> $GITHUB_ENV
-          echo "${deployment_repo}:master" >> $GITHUB_ENV
-          echo "${deployment_repo}:${image_version}" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Build
-        run: |
-          docker pull mirumee/saleor:master
-
-          docker build . -t multitenant_base \
-              --cache-from=localhost:5000/multitenant_base \
-              --build-arg BUILDKIT_INLINE_CACHE=1 \
-              --build-arg UPSTREAM=mirumee/saleor \
-              --build-arg VERSION=master \
-              --build-arg STATIC_URL="/static/" \
-              --build-arg IMAGE_VERSION=$IMAGE_VERSION
-
-          docker build . -t multitenant_api -f Dockerfile.plugins
-
-      - name: Cache Image
-        run: |
-          docker tag multitenant_base localhost:5000/multitenant_base
-          docker push localhost:5000/multitenant_base
-        if: steps.cache-docker.outputs.cache-hit != 'true'
-
-      - name: Test
-        run: |
-          docker-compose --project-name multitenant run --rm api pytest
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -85,16 +48,61 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Push to ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Prepare Environment
         run: |
           set -x
 
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 727618530289.dkr.ecr.us-east-1.amazonaws.com
+          deployment_repo="727618530289.dkr.ecr.us-east-1.amazonaws.com/saleor-multitenant"
+          core_version=$(sed -n 's/ARG\sVERSION="\(\S*\)"/\1/p' Dockerfile)
+          multitenant_hash=$(git rev-parse --short HEAD)
+          core_hash=$(git -C core rev-parse --short HEAD)
 
-          for tag in ${tags}; do
-            docker tag multitenant_api $tag
-            docker push $tag
-          done
+          image_version="${core_version}-${multitenant_hash}-master-${core_hash}"
+
+          tags=${deployment_repo}:master,\
+               ${deployment_repo}:${image_version}
+
+          echo "TAGS=${tags}" >> $GITHUB_ENV
+          echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${deployment_repo}:${image_version}" >> $GITHUB_ENV
+
+      - name: Build And Push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          platforms: linux/amd64,linux/arm64
+          push: True
+          tags: ${{ env.BUILD_TAGS }}
+          target: plugins
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          build-args: |
+            UPSTREAM=${{ env.UPSTREAM }}
+            VERSION=${{ env.UPSTREAM_VERSION }}
+            IMAGE_VERSION=${{ env.IMAGE_VERSION }}
+            STATIC_URL=/static/
+
+      - name: Test
+        run: |
+          docker build . \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --load \
+            -t multitenant_api \
+            --build-arg UPSTREAM=${UPSTREAM} \
+            --build-arg VERSION=${UPSTREAM_VERSION} \
+            --build-arg IMAGE_VERSION=${IMAGE_VERSION} \
+            --build-arg STATIC_URL=/static/
+          COMPOSE_DOCKER_CLI_BUILD=1 docker-compose --project-name multitenant run --rm api pytest
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Deploy to Master Staging
         run: |

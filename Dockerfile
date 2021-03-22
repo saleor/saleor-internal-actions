@@ -1,6 +1,6 @@
 ARG VERSION="3.0.0-a.14"
 ARG UPSTREAM="ghcr.io/mirumee/saleor"
-FROM ${UPSTREAM}:${VERSION}
+FROM ${UPSTREAM}:${VERSION} as prod
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYCURL_SSL_LIBRARY=openssl
@@ -16,9 +16,6 @@ RUN apt-get update \
     python-pycurl \
     python-dev \
     postgresql-client-11
-
-ARG VERSION
-ENV PROJECT_VERSION $VERSION
 
 ADD dogstatsd-metric-exporter/ dogstatsd-metric-exporter/
 ADD requirements.txt /tmp
@@ -62,3 +59,15 @@ ENV PROJECT_VERSION=${IMAGE_VERSION}
 RUN test -n "$PROJECT_VERSION" || echo "Warning: IMAGE_VERSION Argument was not passed" >&2
 
 CMD ["uwsgi", "--ini", "/app/saleor/wsgi/uwsgi.ini"]
+
+### Extend the default multitenant prod image with plugins
+FROM prod as plugins
+
+ADD extra-plugins/ extra-plugins/
+RUN for f in $(find extra-plugins -maxdepth 1 -mindepth 1 -type d); do \
+    ( \
+        set -ex; \
+        cd $f; \
+        python setup.py install \
+    ); \
+    done

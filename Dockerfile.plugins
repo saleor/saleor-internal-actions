@@ -1,7 +1,0 @@
-ARG MULTITENANT_BASE_IMAGE="multitenant_base"
-FROM ${MULTITENANT_BASE_IMAGE}
-
-ADD extra-plugins/ extra-plugins/
-RUN cd extra-plugins/saleor-plugin-oidc && python setup.py install
-
-WORKDIR /app
