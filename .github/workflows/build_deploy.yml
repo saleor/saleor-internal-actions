@@ -58,14 +58,13 @@ jobs:
             tags="${repo}:${image_version}"
           fi
 
-          # Uncomment this after next core release
-          # if [[ "$BRANCH" == "master" ]]; then
+          if [[ "$BRANCH" == "master" ]]; then
             echo "UPSTREAM=mirumee/saleor" >> $GITHUB_ENV
             echo "UPSTREAM_VERSION=master" >> $GITHUB_ENV
-          # else
-          #   echo "UPSTREAM=ghcr.io/mirumee/saleor" >> $GITHUB_ENV
-          #   echo "UPSTREAM_VERSION=$core_version" >> $GITHUB_ENV
-          # fi
+          else
+            echo "UPSTREAM=ghcr.io/mirumee/saleor" >> $GITHUB_ENV
+            echo "UPSTREAM_VERSION=$core_version" >> $GITHUB_ENV
+          fi
 
           echo "BUILD_TAGS=${tags}" >> $GITHUB_ENV
           echo "BRANCH=${branch}" >> $GITHUB_ENV

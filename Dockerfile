@@ -1,4 +1,4 @@
-ARG VERSION="3.0.0-a.14"
+ARG VERSION="3.0.0-a.15"
 ARG UPSTREAM="ghcr.io/mirumee/saleor"
 FROM ${UPSTREAM}:${VERSION} as prod
 
@@ -66,8 +66,8 @@ FROM prod as plugins
 ADD extra-plugins/ extra-plugins/
 RUN for f in $(find extra-plugins -maxdepth 1 -mindepth 1 -type d); do \
     ( \
-        set -ex; \
-        cd $f; \
-        python setup.py install \
+    set -ex; \
+    cd $f; \
+    python setup.py install \
     ); \
     done
