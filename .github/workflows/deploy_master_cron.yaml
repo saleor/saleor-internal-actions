@@ -7,16 +7,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+
     env:
       DEPLOY_CLUSTER_NAME: saleor-cloud
       STAGING_K8S_NAMESPACE: cloud-staging
       MASTER_DEPLOYMENT_NAME: saleor-master-staging
       AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_staging_ns
       DOCKER_BUILDKIT: "1"
+
+      UPSTREAM: mirumee/saleor
+      UPSTREAM_VERSION: master
+
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: master
           submodules: recursive
           token: ${{ secrets.SALEOR_PAT }}
 
@@ -33,7 +37,7 @@ jobs:
         with:
           install: true
 
-      - name: Cache Docker layers
+      - name: Pull from Cache
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
@@ -41,17 +45,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Prepare Environment
+      - name: Prepare Variables
         run: |
           set -x
 
@@ -62,20 +56,28 @@ jobs:
 
           image_version="${core_version}-${multitenant_hash}-master-${core_hash}"
 
-          tags=${deployment_repo}:master,\
-               ${deployment_repo}:${image_version}
+          tags="${deployment_repo}:master","${deployment_repo}:${image_version}"
 
           echo "TAGS=${tags}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${deployment_repo}:${image_version}" >> $GITHUB_ENV
 
-      - name: Build And Push
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build
         uses: docker/build-push-action@v2
         with:
           context: ./
           platforms: linux/amd64,linux/arm64
-          push: True
-          tags: ${{ env.BUILD_TAGS }}
+          tags: ${{ env.TAGS }}
           target: plugins
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
@@ -84,6 +86,9 @@ jobs:
             VERSION=${{ env.UPSTREAM_VERSION }}
             IMAGE_VERSION=${{ env.IMAGE_VERSION }}
             STATIC_URL=/static/
+          # It is *not* possible currently to push a multi-arch image
+          # than directly using buildx
+          push: true
 
       - name: Test
         run: |
@@ -97,14 +102,7 @@ jobs:
             --build-arg STATIC_URL=/static/
           COMPOSE_DOCKER_CLI_BUILD=1 docker-compose --project-name multitenant run --rm api pytest
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Deploy to Master Staging
+      - name: Deploy to Staging
         run: |
           set -x
 
@@ -119,7 +117,7 @@ jobs:
           pod_name=$(kubectl get pod -l app="$MASTER_DEPLOYMENT_NAME" --field-selector=status.phase=Running -o jsonpath="{.items[0].metadata.name}" -n "$STAGING_K8S_NAMESPACE")
           kubectl exec -n "$STAGING_K8S_NAMESPACE" $pod_name -- ./manage.py migrate_schemas
 
-      - name: Notify slack
+      - name: Notify Slack
         if: ${{ always() }}
         env:
           JOB_STATUS: ${{ job.status }}
