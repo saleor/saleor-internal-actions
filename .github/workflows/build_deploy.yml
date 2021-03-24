@@ -8,7 +8,7 @@ jobs:
       DEPLOY_CLUSTER_NAME: saleor-cloud
       STAGING_K8S_NAMESPACE: cloud-staging
       STABLE_DEPLOYMENT_NAME: saleor-stable-staging
-      STABLE_BRANCH_NAME: "2.11"
+      STABLE_BRANCH_NAME: "3.0"
       AWS_CD_ROLE_ARN: arn:aws:iam::727618530289:role/CD_edit_k8s_cloud_staging_ns
     steps:
       - name: checkout
@@ -49,9 +49,7 @@ jobs:
           branch=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch" == "$STABLE_BRANCH_NAME" ]]; then
             image_version="${core_version}-${hash}"
-            tags=${repo}:latest,\
-                 ${repo}:${core_version},\
-                 ${repo}:${image_version}
+            tags="${repo}:latest,${repo}:${core_version},${repo}:${image_version}"
           else
             branch_slug=$(echo $branch | sed 's@/@-@g')
             image_version="${core_version}-${hash}-${branch_slug}"
@@ -105,7 +103,7 @@ jobs:
           set -x
 
           if [[ "$(git rev-parse --abbrev-ref HEAD)" != "$STABLE_BRANCH_NAME" ]]; then
-            echo "Not on master, skipping deployment"
+            echo "Not on $STABLE_BRANCH_NAME, skipping deployment"
             exit 0
           fi
           aws eks --region "$AWS_DEFAULT_REGION" update-kubeconfig --name "$DEPLOY_CLUSTER_NAME" --role "$AWS_CD_ROLE_ARN"
