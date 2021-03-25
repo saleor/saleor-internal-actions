@@ -175,11 +175,5 @@ class DogStatsDMetricsExporter(MetricsExporter):
         return MetricsExportResult.SUCCESS
 
     def shutdown(self) -> None:
-        """
-        On shutdown, we no longer attempt to flush the metrics.
-
-        ``PushController`` will have already invoked ``export`` which will
-        attempt to flush the buffer.
-
-        Reference: https://github.com/open-telemetry/opentelemetry-python/pull/749
-        """
+        logger.info("Shutting down dogstatsd export")
+        self.flush_buffer()

@@ -1,6 +1,6 @@
 from django.conf import settings
 from opentelemetry import metrics
-from opentelemetry.sdk.metrics import MeterProvider, PushController
+from opentelemetry.sdk.metrics import MeterProvider
 
 from dogstatsd_metric_exporter import Configuration, DogStatsDMetricsExporter
 
@@ -17,10 +17,14 @@ exporter = DogStatsDMetricsExporter(
 # * DO NOT set stateful to true if using DogStatsD, it is not supported
 # * Think twice before setting resource attributes/labels, it increases cardinality
 #   thus pricing.
-metrics.set_meter_provider(MeterProvider(stateful=False))
+provider = MeterProvider(stateful=False)
+metrics.set_meter_provider(provider)
 
 # Retrieve the meter (returns a Meter object and not MeterProvider)
-meter = metrics.get_meter(__name__)
+meter = provider.get_meter(__name__)
 
 # Create a push controller for the metrics to be exported to DogStatsD
-controller = PushController(meter, exporter, INTERVAL)
+#
+# provider.start_pipeline must be called directly otherwise the exporter and controller
+# will not get shutdown gracefully. Ref: https://git.io/JmhqW
+provider.start_pipeline(meter, exporter, INTERVAL)
