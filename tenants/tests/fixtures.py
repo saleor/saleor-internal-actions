@@ -1,13 +1,35 @@
+import os
+
 import pytest
 from django import db
 from tenant_schemas.utils import get_public_schema_name, schema_context, tenant_context
 
 from saleor.account.models import User
 from saleor.graphql.tests.fixtures import TenantApiClient
+
 from tenants.models import Tenant
 from tenants.postgresql_backend.base import DatabaseWrapper
 
 connection: DatabaseWrapper
+
+# VCR endpoint to use in integration tests against Service API
+# Can be set to a nginx proxy to add side effects (e.g. 503)
+# or a simple local host resolution to localhost
+#
+# Do not change the default value (tests will fail)
+API_SVC_TEST_API_ENDPOINT = os.environ.get(
+    "API_SVC_TEST_API_ENDPOINT", "http://cloud-api.test.local/service/"
+)
+
+
+@pytest.fixture
+def environ():
+    original = os.environ.copy()
+    yield os.environ
+
+    # Clear and then update to prevent changing the object address
+    os.environ.clear()
+    os.environ.update(original)
 
 
 @pytest.fixture

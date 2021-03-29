@@ -1,0 +1,49 @@
+interactions:
+- request:
+    body: '{"usages": [{"host": "mirumee.com", "project_id": 23, "orders": 0, "variants":
+      0, "warehouses": 0, "channels": 0, "staff_users": 0}, {"host": "othertenant.com",
+      "project_id": 54, "orders": 0, "variants": 0, "warehouses": 0, "channels": 0,
+      "staff_users": 0}], "collected_at": "2019-03-15T07:30:33.511276+00:00"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Token fake_value_xxx
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '310'
+      Content-Type:
+      - application/json
+    method: PUT
+    uri: http://cloud-api.test.local/service/usage/environments/
+  response:
+    body:
+      string: '{"errors":["Failed to match an environment for host ''mirumee.com''
+        with lookup: {''custom_domain'': ''mirumee.com''}","Failed to match an environment
+        for host ''othertenant.com'' with lookup: {''custom_domain'': ''othertenant.com''}"]}'
+    headers:
+      Allow:
+      - PUT, OPTIONS
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '224'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 24 Mar 2021 13:42:19 GMT
+      Server:
+      - nginx/1.19.6
+      Vary:
+      - Accept, Origin
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+    status:
+      code: 200
+      message: OK
+version: 1

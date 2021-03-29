@@ -65,7 +65,9 @@ class LimitType:
         super().__init__(*args, **kwargs)
 
 
-def default_resolver(attname: str, _default_value: None, root: LimitType, _info, **_) -> Optional[int]:
+def default_resolver(
+    attname: str, _default_value: None, root: LimitType, _info, **_
+) -> Optional[int]:
     resolver_cls: T_LIMIT_RESOLVER = root._limit_resolver
     resolver_func = getattr(resolver_cls, attname)
     result: Optional[int] = resolver_func()
