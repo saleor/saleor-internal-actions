@@ -1,11 +1,12 @@
+from django.conf import settings
 from django.core.management import BaseCommand
 from django.db import connection, transaction
-from django.utils.crypto import get_random_string
 
 from saleor.account.models import User
+from saleor.account.notifications import send_set_password_notification
 from saleor.core.permissions import get_permissions
+from saleor.plugins.manager import get_plugins_manager
 
-from tenants.emails import send_password_email
 from tenants.limits.errors import LimitReachedException
 
 
@@ -22,8 +23,13 @@ class Command(BaseCommand):
         with transaction.atomic():
             user = self._get_or_create_user(email)
             self._assign_admin_permissions(user)
-            password = self._set_random_password(user)
-        send_password_email(user, password)
+
+        protocol = "https" if settings.ENABLE_SSL else "http"
+        domain = connection.tenant.domain_url
+        redirect_url = f"{protocol}://{domain}/dashboard/new-password/"
+        send_set_password_notification(
+            redirect_url, user, manager=get_plugins_manager(), staff=True
+        )
 
     @classmethod
     def _get_or_create_user(cls, email):
@@ -51,10 +57,3 @@ class Command(BaseCommand):
         user.is_staff = True
         user.user_permissions.add(*get_permissions())
         user.save()
-
-    @staticmethod
-    def _set_random_password(user):
-        password = get_random_string()
-        user.set_password(password)
-        user.save()
-        return password

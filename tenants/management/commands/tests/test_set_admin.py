@@ -15,7 +15,7 @@ ADMIN_EMAIL = "admin@example.com"
 
 @pytest.fixture
 def mocked_send_email():
-    with mock.patch.object(setadmin, "send_password_email") as patched:
+    with mock.patch.object(setadmin, "send_set_password_notification") as patched:
         yield patched
 
 def test_create_new_admin_user(mocked_send_email):
@@ -54,7 +54,6 @@ def test_skip_staff_user_limit_if_account_exists(tenant_connection_keeper, mocke
 def assert_is_admin(user):
     assert user.is_active
     assert user.is_staff
-    assert user.password
 
     user_permissions = user.user_permissions.all()
     for permission in get_permissions():

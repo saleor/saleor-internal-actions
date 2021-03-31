@@ -35,12 +35,6 @@ ADD saleor/wsgi/uwsgi.ini saleor/wsgi/uwsgi.ini
 ADD saleor/tests/migrations/ saleor/tests/migrations/
 ADD saleor/graphql/tests/test_tenants.py saleor/graphql/tests/test_tenants.py
 
-ADD templates/templated_email/dashboard/staff/password.email \
-    templates/templated_email/dashboard/staff/password.email
-
-ADD templates/templated_email/compiled/password.html \
-    templates/templated_email/compiled/password.html
-
 ADD patches/*.patch patches/
 RUN git apply --verbose patches/*.patch
 

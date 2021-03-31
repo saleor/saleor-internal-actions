@@ -64,7 +64,6 @@ SHARED_APPS = [
 INSTALLED_APPS = [
     "tenants",
     "tenant_schemas",
-    "django_ses",
     *TENANT_APPS,
 ]
 
@@ -113,9 +112,6 @@ OPTL_METRIC_EXPORT_INTERVAL = float(os.environ.get("OPTL_METRIC_EXPORT_INTERVAL"
 # Other
 
 DEFAULT_BACKUP_BUCKET_NAME = os.environ.get("DEFAULT_BACKUP_BUCKET_NAME")
-
-if os.environ.get("USE_SES", False):
-    EMAIL_BACKEND = "django_ses.SESBackend"
 
 CLOUD_SENTRY_DSN = os.getenv("CLOUD_SENTRY_DSN")
 if CLOUD_SENTRY_DSN:

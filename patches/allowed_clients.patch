@@ -22,24 +22,24 @@ index f9fb6c374..16539b4ff 100644
              f"{domain or url} is not allowed. Please check "
              "`ALLOWED_CLIENT_HOSTS` configuration."
 diff --git a/saleor/graphql/account/tests/test_account.py b/saleor/graphql/account/tests/test_account.py
-index 8a43753bd..5dca66eae 100644
+index dda748fd9..ce8100bf0 100644
 --- a/saleor/graphql/account/tests/test_account.py
 +++ b/saleor/graphql/account/tests/test_account.py
-@@ -706,7 +706,7 @@ ACCOUNT_REGISTER_MUTATION = """
+@@ -858,15 +858,13 @@ ACCOUNT_REGISTER_MUTATION = """
+ """
  
  
- @override_settings(
+-@override_settings(
 -    ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL=True, ALLOWED_CLIENT_HOSTS=["localhost"]
-+    ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL=True
- )
- @patch("saleor.account.emails._send_account_confirmation_email")
- def test_customer_register(send_account_confirmation_email_mock, api_client):
-@@ -714,7 +714,7 @@ def test_customer_register(send_account_confirmation_email_mock, api_client):
+-)
++@override_settings(ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL=True)
+ @patch("saleor.account.notifications.default_token_generator.make_token")
+ @patch("saleor.plugins.manager.PluginsManager.notify")
+ def test_customer_register(mocked_notify, mocked_generator, api_client):
+     mocked_generator.return_value = "token"
+     email = "customer@example.com"
+-    redirect_url = "http://localhost:3000"
++    redirect_url = "http://example.com"
      variables = {
          "email": email,
          "password": "Password",
--        "redirectUrl": "http://localhost:3000",
-+        "redirectUrl": "http://example.com",
-     }
-     query = ACCOUNT_REGISTER_MUTATION
-     mutation_name = "accountRegister"
