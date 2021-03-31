@@ -56,7 +56,7 @@ jobs:
             tags="${repo}:${image_version}"
           fi
 
-          if [[ "$BRANCH" == "master" ]]; then
+          if [[ "$branch" == "master" ]]; then
             echo "UPSTREAM=mirumee/saleor" >> $GITHUB_ENV
             echo "UPSTREAM_VERSION=master" >> $GITHUB_ENV
           else
@@ -102,7 +102,7 @@ jobs:
         run: |
           set -x
 
-          if [[ "$(git rev-parse --abbrev-ref HEAD)" != "$STABLE_BRANCH_NAME" ]]; then
+          if [[ "$BRANCH" != "$STABLE_BRANCH_NAME" ]]; then
             echo "Not on $STABLE_BRANCH_NAME, skipping deployment"
             exit 0
           fi
