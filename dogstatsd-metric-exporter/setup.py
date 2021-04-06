@@ -11,7 +11,7 @@ def _read_file(path):
 
 
 INSTALL_REQUIREMENTS = [
-    "datadog",
+    "datadog==0.40.1",
     "opentelemetry-sdk>=0.17b0,<1.0.0",
     "opentelemetry-api>=0.17b0,<1.0.0",
 ]
