@@ -1,8 +1,8 @@
 diff --git a/conftest.py b/conftest.py
-index e23e4a8b9..95284697f 100644
+index 62f7fb73b..4e4fc1776 100644
 --- a/conftest.py
 +++ b/conftest.py
-@@ -1,6 +1,53 @@
+@@ -1,7 +1,54 @@
 +import pytest
 +from django.db import connection
 +from tenant_schemas.utils import get_tenant_model
@@ -11,12 +11,13 @@ index e23e4a8b9..95284697f 100644
 +
 +
  pytest_plugins = [
++    "pytester",
++    "tenants.tests.fixtures",
      "saleor.tests.fixtures",
      "saleor.plugins.tests.fixtures",
      "saleor.graphql.tests.fixtures",
      "saleor.graphql.channel.tests.fixtures",
-+    "pytester",
-+    "tenants.tests.fixtures",
+     "saleor.graphql.order.tests.benchmark.fixtures",
  ]
 +
 +
@@ -161,7 +162,7 @@ index 571b4020d..61f68ec68 100644
      )[0]
 +
      settings.SITE_ID = site.pk
- 
+
      main_menu = Menu.objects.get_or_create(
 @@ -242,6 +243,8 @@ def site_settings(db, settings) -> SiteSettings:
      )[0]
@@ -171,4 +172,4 @@ index 571b4020d..61f68ec68 100644
 +    obj.default_mail_sender_address = "mirumee@example.com"
      obj.save()
      return obj
- 
+
