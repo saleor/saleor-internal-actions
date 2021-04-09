@@ -11,7 +11,7 @@ import saleor.channel.models as channel_models
 import saleor.product.models as product_models
 import saleor.warehouse.models as warehouse_models
 from tenants.models import Tenant
-from tenants.telemetry import Telemetry
+from tenants.telemetry.controller import Telemetry
 
 from . import errors
 from . import models as m

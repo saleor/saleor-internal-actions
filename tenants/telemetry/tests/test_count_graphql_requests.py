@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from .. import Telemetry
+from ..controller import Telemetry
 
 
 @pytest.fixture

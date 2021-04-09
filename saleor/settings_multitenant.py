@@ -2,6 +2,7 @@ from sys import stderr
 
 from saleor.settings import *  # noqa
 from tenants.datadog import DatadogInstaller
+import tenants.telemetry.settings
 
 PROJECT_VERSION = os.getenv("PROJECT_VERSION")
 
@@ -127,3 +128,6 @@ if CLOUD_SENTRY_DSN:
 #   checks as we don't want to expose the limitations directly to non-staff users.
 #   Remember, the middleware execution order is last first, first is last.
 GRAPHENE["MIDDLEWARE"].insert(0, "tenants.limits.middleware.TenantPlanLimitMiddleware")
+
+# Configure OpenTelemetry DogStatsD exporter logging
+tenants.telemetry.settings.configure_metric_exporter_logging(LOGGING["loggers"])

@@ -150,13 +150,19 @@ class DogStatsDMetricsExporter(MetricsExporter):
         yield "".join(lines)
 
     def send_packet(self, packet: str) -> None:
-        packets_sent = 1
-        bytes_sent = len(packet)
-
         if self._client._xmit_packet(packet, True) is False:
             raise RuntimeError(E_FAILED_SEND_PACKET)
 
-        logger.debug("Sent %d packets (%d bytes)", packets_sent, bytes_sent)
+        if logger.level != logging.DEBUG:
+            return None
+
+        log_args = {
+            "bytes": len(packet),
+            "contents": packet,
+        }
+        logger.debug(
+            "Sent %(bytes)d bytes; contents: %(contents)r", log_args, extra=log_args
+        )
 
     def flush_buffer(self) -> MetricsExportResult:
         return self._queue.maybe_flush()
