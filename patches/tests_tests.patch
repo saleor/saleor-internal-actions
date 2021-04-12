@@ -104,9 +104,10 @@ diff --git a/saleor/graphql/product/tests/test_product.py b/saleor/graphql/produ
 index ad695bce8..7b8bbff4e 100644
 --- a/saleor/graphql/product/tests/test_product.py
 +++ b/saleor/graphql/product/tests/test_product.py
-@@ -2795,7 +2795,7 @@ def test_create_product_with_file_attribute_new_attribute_value(
+@@ -2795,8 +2795,8 @@ def test_create_product_with_file_attribute_new_attribute_value(
                      "slug": slugify(non_existing_value, allow_unicode=True),
                      "reference": None,
+                     "richText": None,
                      "file": {
 -                        "url": "http://testserver/media/" + non_existing_value,
 +                        "url": "http://mirumee.com/media/" + non_existing_value,
