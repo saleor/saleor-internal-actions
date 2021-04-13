@@ -106,7 +106,7 @@ if CELERY_QUEUE_PREFIX:
 #   * OPTL_NAMESPACE: the metrics prefix, e.g. "core" => core.my_counter
 #   * OPTL_UDS_PATH: the Unix Domain Socket path to write to DogStatsD
 #   * OPTL_METRIC_EXPORT_INTERVAL: the collected metrics export interval in seconds
-OPTL_NAMESPACE = os.environ.get("OPTL_NAMESPACE", "core")
+OPTL_NAMESPACE = os.environ["OPTL_NAMESPACE"]
 OPTL_UDS_PATH = os.environ.get("OPTL_UDS_PATH", "/var/run/datadog/dsd.socket")
 OPTL_METRIC_EXPORT_INTERVAL = float(os.environ.get("OPTL_METRIC_EXPORT_INTERVAL", 60))
 
