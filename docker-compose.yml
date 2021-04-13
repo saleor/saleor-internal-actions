@@ -98,10 +98,8 @@ services:
       DD_BIND_HOST: "0.0.0.0"
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "false"
       DD_DOGSTATSD_SOCKET: /var/run/datadog/dsd.socket
-    # Uncomment if testing is needed against a real API key.
-    # Syntax of the file is: DD_API_KEY=foo
-    # --
-    # env_file: .apikey
+      # Do not edit the compose-file directly: refer to `.env`
+      DD_API_KEY: ${DD_API_KEY}
 
   nginx:
     image: nginx
