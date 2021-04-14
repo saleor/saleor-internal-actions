@@ -21,7 +21,7 @@ class Telemetry:
 
     @classmethod
     def get_tenant_labels(cls, tenant: "Tenant") -> T_LABELS:
-        return {"project_id": tenant.project_id}
+        return {"project_id": tenant.project_id, "host": ""}
 
     @classmethod
     def inc_gql_request_count(cls, incr: int, labels: T_LABELS):
