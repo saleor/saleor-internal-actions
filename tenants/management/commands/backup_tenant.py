@@ -5,6 +5,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pathlib import Path
 
 import boto3
+from boto3.s3.transfer import TransferConfig
 from boto3_type_annotations.s3 import Client
 from django.core.management import BaseCommand, CommandError
 from django.db import connection
@@ -58,13 +59,18 @@ ENVIRONMENT VARIABLES:
     @staticmethod
     def _upload(from_path: Path, *, opts: S3Options):
         s3_client: Client = boto3.client("s3")
-        with open(from_path, mode="rb") as fp:
-            s3_client.put_object(
-                Body=fp,
-                ContentType="application/x-gzip",
-                Tagging=f"BackupVersion={BACKUP_VERSION}",
-                **opts,
-            )
+        extra_args = {
+            "ContentType": "application/x-gzip",
+            "Tagging": f"BackupVersion={BACKUP_VERSION}",
+        }
+
+        s3_client.upload_file(
+            Filename=str(from_path),
+            Bucket=opts.Bucket,
+            Key=opts.Key,
+            ExtraArgs=extra_args,
+            Config=TransferConfig(multipart_threshold=1024 ** 3),
+        )
 
     @staticmethod
     def _run_media_backup(media_dir):
