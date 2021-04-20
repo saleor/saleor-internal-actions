@@ -34,8 +34,8 @@ def test_graphql_request_increments_tenant_request_counter(
 
     # (<increment>, <labels>)
     expected_calls = [
-        call(1, {"project_id": 23, "host": ""}),
-        call(1, {"project_id": 54, "host": ""}),
+        call(1, {"project_id": 23, "host": "", "model": "monthly"}),
+        call(1, {"project_id": 54, "host": "", "model": "monthly"}),
     ]
 
     mocked_gql_request_counter.assert_has_calls(expected_calls)
