@@ -43,7 +43,7 @@ index 9d8b8cef2..4ea6747ed 100644
 +++ b/saleor/graphql/core/tests/test_file_upload.py
 @@ -38,7 +38,7 @@ def test_file_upload_by_staff(staff_api_client, site_settings, media_root):
      data = content["data"]["fileUpload"]
-     errors = data["uploadErrors"]
+     errors = data["errors"]
  
 -    expected_path = "http://testserver/media/" + image_file._name
 +    expected_path = "http://mirumee.com/media/" + image_file._name
@@ -52,7 +52,7 @@ index 9d8b8cef2..4ea6747ed 100644
      assert data["uploadedFile"]["url"] == expected_path
 @@ -76,7 +76,7 @@ def test_file_upload_by_app(app_api_client, media_root):
      data = content["data"]["fileUpload"]
-     errors = data["uploadErrors"]
+     errors = data["errors"]
  
 -    expected_path = "http://testserver/media/" + image_file._name
 +    expected_path = "http://mirumee.com/media/" + image_file._name
@@ -61,7 +61,7 @@ index 9d8b8cef2..4ea6747ed 100644
      assert data["uploadedFile"]["url"] == expected_path
 @@ -99,7 +99,7 @@ def test_file_upload_by_superuser(superuser_api_client, media_root):
      data = content["data"]["fileUpload"]
-     errors = data["uploadErrors"]
+     errors = data["errors"]
  
 -    expected_path = "http://testserver/media/" + image_file._name
 +    expected_path = "http://mirumee.com/media/" + image_file._name
