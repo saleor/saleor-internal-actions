@@ -24,9 +24,11 @@ def test_graphql_request_increments_tenant_request_counter(
     Ensures a middleware is incrementing the request count on the graphql middleware level
     """
 
+    # Tenant #1: project_id = 23, model = monthly
     response = api_client.post_graphql("{ __typename }")
     assert response.status_code == 200
 
+    # Tenant #2: project_id = 54, model = daily
     request.getfixturevalue("as_other_tenant")
     other_api_client = request.getfixturevalue("other_tenant_api_client")
     response = other_api_client.post_graphql("{ __typename }")
@@ -35,7 +37,7 @@ def test_graphql_request_increments_tenant_request_counter(
     # (<increment>, <labels>)
     expected_calls = [
         call(1, {"project_id": 23, "host": "", "model": "monthly"}),
-        call(1, {"project_id": 54, "host": "", "model": "monthly"}),
+        call(1, {"project_id": 54, "host": "", "model": "daily"}),
     ]
 
     mocked_gql_request_counter.assert_has_calls(expected_calls)

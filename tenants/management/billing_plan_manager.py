@@ -1,19 +1,31 @@
 import argparse
 from functools import partial
-from typing import Any
+from typing import Any, Union
 
-from tenants.models import Tenant
 from tenants.limits import models as m
+from tenants.models import Tenant
 
-T_LIMITS = dict[str, int]
+T_LIMITS = dict[str, Union[int, str]]
 
 
 class BillingPlanManagement:
     @classmethod
     def extract_limits_from_opts(cls, options: dict[str, Any]) -> T_LIMITS:
-        return {
-            k: v for k, v in options.items() if k.startswith("max_") and v is not None
-        }
+        """
+        Extracts all billing information fields from the parsed namespace
+        
+        Expects all fields to be supplied:
+        - If the parameters are not required, we expect non-null defaults for missing values
+        - If the parameters are all required, we expect only user inputs as values
+        
+        If the two conditions are not true, a `KeyError` exception is expected.
+        """
+        found = {}
+        for field_name in m.FIELDS:
+            value = options[field_name]
+            if value is not None:
+                found[field_name] = value
+        return found
 
     @classmethod
     def add_arguments(
@@ -30,6 +42,18 @@ class BillingPlanManagement:
         add_argument("--channels", dest=m.MAX_CHANNEL_COUNT)
         add_argument("--warehouses", dest=m.MAX_WAREHOUSE_COUNT)
         add_argument("--staff", dest=m.MAX_STAFF_USER_COUNT)
+
+        if required is True:
+            group.add_argument(
+                "--allowance-period", dest=m.ALLOWANCE_PERIOD, required=True
+            )
+        else:
+            group.add_argument(
+                "--allowance-period",
+                dest=m.ALLOWANCE_PERIOD,
+                required=False,
+                default="monthly",
+            )
 
     @classmethod
     def set_tenant_limits(cls, tenant: Tenant, limits: T_LIMITS):

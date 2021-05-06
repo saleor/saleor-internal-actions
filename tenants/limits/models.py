@@ -9,6 +9,15 @@ MAX_STAFF_USER_COUNT = "max_staff_user_count"
 MAX_WAREHOUSE_COUNT = "max_warehouse_count"
 MAX_CHANNEL_COUNT = "max_channel_count"
 MAX_SKU_COUNT = "max_sku_count"
+ALLOWANCE_PERIOD = "allowance_period"
+
+FIELDS = (
+    MAX_STAFF_USER_COUNT,
+    MAX_WAREHOUSE_COUNT,
+    MAX_CHANNEL_COUNT,
+    MAX_SKU_COUNT,
+    ALLOWANCE_PERIOD,
+)
 
 
 class TenantLimitsMixin(models.Model):
@@ -36,6 +45,7 @@ class TenantLimitsMixin(models.Model):
     max_warehouse_count = models.IntegerField()
     max_channel_count = models.IntegerField()
     max_sku_count = models.IntegerField()
+    allowance_period = models.CharField(max_length=20)
 
     objects: QuerySet
 

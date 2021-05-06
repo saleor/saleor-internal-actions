@@ -1,9 +1,10 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.management import call_command
+
+from tenants.limits import models as billing_models
 from tenants.management.commands.createtenant import Command
-from tenants.management.commands.tests.conftest import get_limits_fields
 from tenants.models import Tenant
 
 CMD = "createtenant"
@@ -29,27 +30,26 @@ def mocked_create_schema() -> MagicMock:
                 "8",
                 "--staff",
                 "7",
+                "--allowance-period",
+                "weekly",
             ),
             {
                 "max_channel_count": 10,
                 "max_sku_count": 9,
                 "max_warehouse_count": 8,
                 "max_staff_user_count": 7,
+                "allowance_period": "weekly",
             },
         ),
         (
             "provide partially limit options, expect unlimited for missing options",
-            (
-                "--channels",
-                "10",
-                "--products",
-                "9",
-            ),
+            ("--channels", "10", "--products", "9",),
             {
                 "max_channel_count": 10,
                 "max_sku_count": 9,
                 "max_warehouse_count": -1,
                 "max_staff_user_count": -1,
+                "allowance_period": "monthly",
             },
         ),
         (
@@ -60,6 +60,7 @@ def mocked_create_schema() -> MagicMock:
                 "max_sku_count": -1,
                 "max_warehouse_count": -1,
                 "max_staff_user_count": -1,
+                "allowance_period": "monthly",
             },
         ),
     ],
@@ -77,7 +78,7 @@ def test_create_tenant_with_limits_set(
         CMD, "my.tenant.test", "-s", "mytenanttest", "--project-id", "34", *limit_opts
     )
 
-    fields = get_limits_fields()
+    fields = billing_models.FIELDS
 
     # Check tenant and the schema are created
     mocked_create_schema.assert_called_once()
@@ -95,9 +96,7 @@ def test_create_tenant_allows_missing_project_id(as_public, mocked_create_schema
     tenant_qs = Tenant.objects.filter(domain_url=domain, schema_name="mytenanttest")
     assert tenant_qs.exists() is False, "should not be existing"
 
-    call_command(
-        CMD, "my.tenant.test", "-s", "mytenanttest"
-    )
+    call_command(CMD, "my.tenant.test", "-s", "mytenanttest")
 
     # Check tenant and the schema are created, project ID should be -1
     mocked_create_schema.assert_called_once()

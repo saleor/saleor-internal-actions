@@ -2,8 +2,7 @@ from django.contrib.sites.models import Site
 from django.core.management import call_command
 from tenant_schemas.utils import tenant_context
 
-from tenants.limits.models import TenantLimitsMixin
-from tenants.management.commands.tests.conftest import get_limits_fields
+from tenants.limits import models as billing_models
 from tenants.models import Tenant
 
 CMD = "updatetenant"
@@ -67,18 +66,55 @@ def test_update_tenant_allowed_hosts_multiple_domains(test_tenant):
 
 
 def test_partial_update_limits(as_other_tenant, other_tenant):
-    """Expect only two fields to be changed"""
+    """Expect only two fields to be changed in tenant row"""
+    assert other_tenant.allowance_period != "monthly"
+
     call_command(CMD, "--channels", 3, "--products", -1)
-    fields = get_limits_fields()
+    fields = billing_models.FIELDS
 
     expected = {
         "max_channel_count": 3,  # from 2 to 3
         "max_staff_user_count": 3,
         "max_warehouse_count": 4,
         "max_sku_count": -1,  # from 5 to -1
+        "allowance_period": "monthly",  # from 5 to -1
     }
 
     # Retrieve all field from the model to ensure test is not outdated
     actual = Tenant.objects.filter(pk=other_tenant.pk).values(*fields).get()
+
+    assert actual == expected
+
+
+def test_full_update_billing_info(as_other_tenant, other_tenant):
+    """Update all billing information about a tenant"""
+
+    # fmt: off
+    command_args = (
+        "--products", 501,
+        "--channels", 502,
+        "--warehouses", 503,
+        "--staff", 504,
+        "--allowance-period", "weekly",
+    )
+    # fmt: on
+
+    expected = {
+        "max_sku_count": 501,  # from 2 to 3
+        "max_channel_count": 502,  # from 2 to 3
+        "max_warehouse_count": 503,  # from 2 to 3
+        "max_staff_user_count": 504,
+        "allowance_period": "weekly",
+    }
+
+    call_command(CMD, *command_args)
+    fields = billing_models.FIELDS
+
+    # Retrieve all field from the model to ensure test is not outdated
+    actual = (
+        Tenant.objects.filter(pk=other_tenant.pk)
+        .values("allowance_period", *fields)
+        .get()
+    )
 
     assert actual == expected
