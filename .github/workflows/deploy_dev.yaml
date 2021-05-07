@@ -45,3 +45,12 @@ jobs:
           
           kubectl patch deployment "$DEV_DEPLOYMENT_NAME" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$DEV_K8S_NAMESPACE"
           kubectl patch deployment "$(echo $DEV_DEPLOYMENT_NAME | sed 's/saleor/celery/')" --type='json' -p="[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"$IMAGE_TAG\"}]" -n "$DEV_K8S_NAMESPACE"
+
+      - name: Notify Slack
+        if: ${{ always() }}
+        env:
+          JOB_DEPLOYMENT_KIND: dev
+          JOB_STATUS: ${{ job.status }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CLOUD_DEV_WEBHOOK_URL }}
+          JOB_PR_TITLE: ${{ github.event.pull_request.title }}
+        run: ./.github/workflows/notify/notify-slack.py
