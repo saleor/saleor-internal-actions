@@ -43,19 +43,6 @@ index 87ad22b3f..f01f68031 100644
      elif request:
          host = request.get_host()
          try:
-diff --git a/setup.cfg b/setup.cfg
-index 984ccce51..5b83ee251 100644
---- a/setup.cfg
-+++ b/setup.cfg
-@@ -74,7 +74,7 @@ plugins =
-     mypy_django_plugin.main
-
- [mypy.plugins.django-stubs]
--django_settings_module = saleor.settings
-+django_settings_module = saleor.settings_multitenant
-
- [mypy-saleor.*.migrations.*]
- ignore_errors = True
 diff --git a/templates/graphql/playground.html b/templates/graphql/playground.html
 index 8402d6397..b5793e2ea 100644
 --- a/templates/graphql/playground.html

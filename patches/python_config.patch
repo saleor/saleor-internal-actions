@@ -1,0 +1,26 @@
+diff --git a/setup.cfg b/setup.cfg
+index e70467e44c..6580fedb77 100644
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -15,8 +15,10 @@ exclude_lines =
+     if TYPE_CHECKING:
+
+ [tool:pytest]
+-addopts = -n auto --vcr-record-mode=none --ds=saleor.tests.settings
+-testpaths = saleor
++addopts = -n auto --vcr-record-mode=none --ds=tenants.tests.settings
++testpaths =
++    saleor
++    tenants
+ filterwarnings =
+     ignore::DeprecationWarning
+     ignore::PendingDeprecationWarning
+@@ -74,7 +76,7 @@ plugins =
+     mypy_django_plugin.main
+
+ [mypy.plugins.django-stubs]
+-django_settings_module = saleor.settings
++django_settings_module = saleor.settings_multitenant
+
+ [mypy-saleor.*.migrations.*]
+ ignore_errors = True

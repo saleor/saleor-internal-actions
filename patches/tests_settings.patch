@@ -1,47 +1,13 @@
 diff --git a/saleor/tests/settings.py b/saleor/tests/settings.py
-index 38a85b812..aec7fc511 100644
+index af1f48d7de..e32080d68a 100644
 --- a/saleor/tests/settings.py
 +++ b/saleor/tests/settings.py
-@@ -5,6 +5,9 @@ from django.utils.functional import SimpleLazyObject
+@@ -5,6 +5,8 @@ from django.utils.functional import SimpleLazyObject
 
  from ..settings import *  # noqa
 
-+from tenants.postgresql_backend.creation import TEST_DOMAIN
 +from ..settings_multitenant import *  # noqa
 +
 
  def lazy_re_compile(regex, flags=0):
      """Lazily compile a regex with flags."""
-@@ -53,7 +56,17 @@ PATTERNS_IGNORED_IN_QUERY_CAPTURES: List[Union[Pattern, SimpleLazyObject]] = [
- ]
-
- INSTALLED_APPS.append("saleor.tests")  # noqa: F405
-+TENANT_APPS.append("saleor.tests")  # noqa: F405
-
- JWT_EXPIRE = True
-
-+ALLOWED_HOSTS = ["localhost", "127.0.0.1", TEST_DOMAIN]
-+
-+PATTERNS_IGNORED_IN_QUERY_CAPTURES: List[Union[Pattern, SimpleLazyObject]] = [
-+    lazy_re_compile(r"^SET\s+"),
-+    lazy_re_compile(r"^SELECT \"tenants_tenant\".\"id\",.+ FROM \"tenants_tenant\"\s+"),
-+]
-+
-+DEFAULT_BACKUP_BUCKET_NAME = "testbackups"
-+
- DEFAULT_CHANNEL_SLUG = "main"
-diff --git a/setup.cfg b/setup.cfg
-index 7d862537f..81b9e4437 100644
---- a/setup.cfg
-+++ b/setup.cfg
-@@ -16,7 +16,9 @@ exclude_lines =
-
- [tool:pytest]
- addopts = -n auto --vcr-record-mode=none --ds=saleor.tests.settings
--testpaths = saleor
-+testpaths =
-+    saleor
-+    tenants
- filterwarnings =
-     ignore::DeprecationWarning
-     ignore::PendingDeprecationWarning
