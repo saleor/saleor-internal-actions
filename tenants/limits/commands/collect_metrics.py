@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date
 from time import sleep
 from typing import Optional, List, Tuple
 
@@ -21,6 +21,21 @@ class TemporaryFailure(Exception):
 
     def __str__(self) -> str:
         return f"{self.message}: {self.details}"
+
+
+def get_date_range() -> Tuple[str, str]:
+    """Returns iso format date range for beginning of month and day"""
+    # Retrieve start date for daily and monthly plans
+    today_date = date.today()
+    start_day_datetime = datetime(
+        today_date.year, today_date.month, today_date.day, tzinfo=pytz.UTC
+    )
+    start_month_datetime = start_day_datetime.replace(day=1)
+    return start_day_datetime.isoformat(), start_month_datetime.isoformat()
+
+
+def make_default_manager() -> TenantMetricManager:
+    return TenantMetricManager(*get_date_range())
 
 
 def maybe_raise_for_status(status_code: int, expected_code: int):
@@ -157,7 +172,7 @@ class Command(base.BaseCommand):
     @staticmethod
     @trace
     def collect_tenants_usage_metrics_task() -> Tuple[dict, int]:
-        manager = TenantMetricManager()
+        manager = make_default_manager()
         manager.collect_metrics()
         collected_at: str = datetime.now().replace(tzinfo=pytz.UTC).isoformat()
         records = manager.as_list()

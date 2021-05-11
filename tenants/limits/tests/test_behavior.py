@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-from django.db import connection
 
 from saleor.channel.models import Channel
 from saleor.graphql.tests.utils import get_graphql_content

@@ -1,26 +1,25 @@
+import datetime
 import functools
 from collections import namedtuple
 from typing import List, Optional
 
 import opentracing as ot
 from django import db
-from django.db.models import QuerySet
 
-from saleor.account.models import User
 
-QUERY = """
+ALL_TENANTS_STATS_QUERY = """
 SELECT 
-    S.schemaname  AS schema_name,
-    T.domain_url  AS host,
-    T.project_id  AS project_id,
-    S.relname     AS table_name,
-    S.n_live_tup  AS live_count
+    S.schemaname                  AS schema_name,
+    T.domain_url                  AS host,
+    T.project_id                  AS project_id,
+    T.allowance_period = 'daily'  AS is_daily,
+    S.relname                     AS table_name,
+    S.n_live_tup                  AS live_count
 
 FROM pg_catalog.pg_stat_all_tables AS S
 JOIN public.tenants_tenant AS T ON S.schemaname = T.schema_name
 
 WHERE relname IN (
-    'order_order',
     'product_productvariant', 
     'warehouse_warehouse', 
     'channel_channel'
@@ -28,8 +27,16 @@ WHERE relname IN (
 ORDER BY T.domain_url;
 """
 
+CONDITIONAL_SINGLE_TENANT_QUERY = """
+SELECT 
+    (SELECT COUNT(*) FROM account_user WHERE account_user.is_staff) as staff_count,
+    (SELECT COUNT(*) FROM order_order WHERE order_order.created >= %s::timestamp) as order_count
+;
+"""
+
 MetricRecord = namedtuple(
-    "MetricRecord", ("schema_name", "host", "project_id", "table_name", "live_count")
+    "MetricRecord",
+    ("schema_name", "host", "project_id", "is_daily", "table_name", "live_count"),
 )
 
 
@@ -49,6 +56,7 @@ class TenantMetrics:
         "schema_name",
         "project_id",
         "host",
+        "is_daily",
         "orders",
         "variants",
         "warehouses",
@@ -56,7 +64,8 @@ class TenantMetrics:
         "staff_users",
     )
 
-    def __init__(self, schema_name: str, project_id: int, host: str):
+    def __init__(self, *, schema_name: str, project_id: int, host: str, is_daily: bool):
+        self.is_daily: bool = is_daily
         self.schema_name: str = schema_name
         self.project_id: int = project_id
         self.host: str = host
@@ -87,7 +96,6 @@ class TenantMetrics:
 
 
 REL_MAP = {
-    "order_order": "orders",
     "product_productvariant": "variants",
     "warehouse_warehouse": "warehouses",
     "channel_channel": "channels",
@@ -95,10 +103,14 @@ REL_MAP = {
 
 
 class TenantMetricManager:
-    __slots__ = ("tenants",)
+    __slots__ = ("tenants", "start_day_datetime", "start_month_datetime")
 
-    def __init__(self):
+    def __init__(
+        self, start_day_datetime: datetime.date, start_month_datetime: datetime.datetime
+    ):
         self.tenants: List[TenantMetrics] = []
+        self.start_day_datetime = start_day_datetime
+        self.start_month_datetime = start_month_datetime
 
     @staticmethod
     def get_connection():
@@ -106,11 +118,11 @@ class TenantMetricManager:
 
     @trace
     def create_tenant_metrics_container(
-        self, schema_name: str, host: str, project_id: int
+        self, schema_name: str, host: str, project_id: int, is_daily: bool,
     ) -> TenantMetrics:
         """Creates a tenant metrics container that holds all the gathered metrics."""
         metrics = TenantMetrics(
-            schema_name=schema_name, project_id=project_id, host=host
+            schema_name=schema_name, project_id=project_id, host=host, is_daily=is_daily
         )
         self.tenants.append(metrics)
         return metrics
@@ -137,13 +149,25 @@ class TenantMetricManager:
         Potentially one could index the ``is_staff`` column and (MAYBE) would result
         to pg_class to get updated more frequently.
         """
-        qs_staff_users: QuerySet = User.objects.filter(is_staff=True)
+        today_start, this_month_start = (
+            self.start_day_datetime,
+            self.start_month_datetime,
+        )
         connection = self.get_connection()
 
         for tenant in self.tenants:
             connection.set_schema(tenant.schema_name)
-            count = qs_staff_users.count()
-            tenant.staff_users += count
+
+            with connection.cursor() as cur:
+                if tenant.is_daily is True:
+                    cur.execute(CONDITIONAL_SINGLE_TENANT_QUERY, (today_start,))
+                else:
+                    cur.execute(CONDITIONAL_SINGLE_TENANT_QUERY, (this_month_start,))
+                staff, orders = cur.fetchone()
+
+            tenant.orders += orders
+            tenant.staff_users += staff
+
         connection.set_schema_to_public()
 
     @trace
@@ -152,7 +176,7 @@ class TenantMetricManager:
         Retrieves the number of rows for given tables in a single SQL query.
 
         The tables to which the count of rows must be retrieved is defined by the
-        WHERE condition in ``QUERY``.
+        WHERE condition in ``ALL_TENANTS_STATS_QUERY``.
 
         Each record comes from the database's global statistic table and is then
         associated to the database's global tenant table.
@@ -162,7 +186,7 @@ class TenantMetricManager:
         connection = self.get_connection()
 
         with connection.cursor() as cursor:
-            cursor.execute(QUERY)
+            cursor.execute(ALL_TENANTS_STATS_QUERY)
             host: str = ""
             current_tenant: Optional[TenantMetrics] = None
 
@@ -175,9 +199,14 @@ class TenantMetricManager:
                 if record.host != host:
                     host = record.host
                     current_tenant = self.create_tenant_metrics_container(
-                        record.schema_name, record.host, record.project_id
+                        record.schema_name,
+                        record.host,
+                        record.project_id,
+                        record.is_daily,
                     )
 
+                # Increment associated SQL table to simple API field key
+                # e.g. channel_channel => channels
                 field = REL_MAP[record.table_name]
                 current_tenant.increment(field, record.live_count)
 
