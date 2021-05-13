@@ -28,7 +28,11 @@ class Command(BaseCommand):
         domain = connection.tenant.domain_url
         redirect_url = f"{protocol}://{domain}/dashboard/new-password/"
         send_set_password_notification(
-            redirect_url, user, manager=get_plugins_manager(), staff=True
+            redirect_url,
+            user,
+            channel_slug=None,
+            manager=get_plugins_manager(),
+            staff=True,
         )
 
     @classmethod
@@ -49,7 +53,11 @@ class Command(BaseCommand):
 
         current = User.objects.filter(is_staff=True).count()
         if current >= maximum_count:
-            raise LimitReachedException(resource_plural="Staff users", maximum_count=maximum_count, current=current)
+            raise LimitReachedException(
+                resource_plural="Staff users",
+                maximum_count=maximum_count,
+                current=current,
+            )
 
     @staticmethod
     def _assign_admin_permissions(user):

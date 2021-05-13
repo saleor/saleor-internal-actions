@@ -1,22 +1,26 @@
 from unittest import mock
 
 import pytest
-from django.db import connection 
 from django.core.management import call_command
+from django.db import connection
 
 from saleor.account.models import User
 from saleor.core.permissions import get_permissions
-
-from tenants.management.commands import setadmin
 from tenants.limits.errors import LimitReachedException
+from tenants.management.commands import setadmin
 
 CMD = "setadmin"
 ADMIN_EMAIL = "admin@example.com"
 
+
 @pytest.fixture
 def mocked_send_email():
-    with mock.patch.object(setadmin, "send_set_password_notification") as patched:
+    original = setadmin.send_set_password_notification
+    with mock.patch.object(
+        setadmin, "send_set_password_notification", wraps=original
+    ) as patched:
         yield patched
+
 
 def test_create_new_admin_user(mocked_send_email):
     assert User.objects.count() == 0
@@ -24,6 +28,7 @@ def test_create_new_admin_user(mocked_send_email):
     user = User.objects.get(email=ADMIN_EMAIL)
     assert_is_admin(user)
     mocked_send_email.assert_called_once()
+
 
 def test_assign_admin_permissions_to_exisiting_user(mocked_send_email):
     user = User.objects.create(email=ADMIN_EMAIL)
@@ -33,7 +38,9 @@ def test_assign_admin_permissions_to_exisiting_user(mocked_send_email):
     mocked_send_email.assert_called_once()
 
 
-def test_fail_to_create_when_out_of_staff_user_limit(tenant_connection_keeper, mocked_send_email):
+def test_fail_to_create_when_out_of_staff_user_limit(
+    tenant_connection_keeper, mocked_send_email
+):
     connection.tenant.max_staff_user_count = 0
     connection.tenant.save()
     with pytest.raises(LimitReachedException):
@@ -41,7 +48,9 @@ def test_fail_to_create_when_out_of_staff_user_limit(tenant_connection_keeper, m
     mocked_send_email.assert_not_called()
 
 
-def test_skip_staff_user_limit_if_account_exists(tenant_connection_keeper, mocked_send_email):
+def test_skip_staff_user_limit_if_account_exists(
+    tenant_connection_keeper, mocked_send_email
+):
     user = User.objects.create(email=ADMIN_EMAIL, is_staff=True)
     connection.tenant.max_staff_user_count = 1
     connection.tenant.save()
@@ -50,6 +59,7 @@ def test_skip_staff_user_limit_if_account_exists(tenant_connection_keeper, mocke
     user.refresh_from_db()
     assert_is_admin(user)
     mocked_send_email.assert_called_once()
+
 
 def assert_is_admin(user):
     assert user.is_active
