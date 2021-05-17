@@ -23,8 +23,9 @@ metrics.set_meter_provider(provider)
 # Retrieve the meter (returns a Meter object and not MeterProvider)
 meter = provider.get_meter(__name__)
 
-# Create a push controller for the metrics to be exported to DogStatsD
-#
-# provider.start_pipeline must be called directly otherwise the exporter and controller
-# will not get shutdown gracefully. Ref: https://git.io/JmhqW
-provider.start_pipeline(meter, exporter, INTERVAL)
+if settings.OPTL_ENABLED is True:
+    # Create a push controller for the metrics to be exported to DogStatsD
+    #
+    # ``start_pipeline`` must be called directly otherwise the exporter and controller
+    # will not get shutdown gracefully. Ref: https://git.io/JmhqW
+    provider.start_pipeline(meter, exporter, INTERVAL)

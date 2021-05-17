@@ -1,6 +1,7 @@
 import dataclasses
 from typing import Any, Callable, Dict, Optional, Union
 
+from django.conf import settings
 from django.db import connection
 from django.db.models import Manager, QuerySet
 from graphql import ResolveInfo
@@ -135,7 +136,8 @@ class TenantPlanLimitMiddleware:
 
         # Increment GraphQL request count otherwise other requests such as plugins
         # GraphQL requests can have trailing characters after the slash
-        Telemetry.inc_gql_request_count(1, labels)
+        if settings.OPTL_ENABLED is True:
+            Telemetry.inc_gql_request_count(1, labels)
 
         # If the call is write operation, check limits
         if info.operation.operation == "mutation":

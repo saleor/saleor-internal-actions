@@ -103,9 +103,11 @@ if CELERY_QUEUE_PREFIX:
     }
 
 # OpenTelemetry Settings
+#   * OPTL_ENABLED: whether to enable or not telemetry, valid values: ``True``
 #   * OPTL_NAMESPACE: the metrics prefix, e.g. "core" => core.my_counter
 #   * OPTL_UDS_PATH: the Unix Domain Socket path to write to DogStatsD
 #   * OPTL_METRIC_EXPORT_INTERVAL: the collected metrics export interval in seconds
+OPTL_ENABLED: bool = os.environ.get("OPTL_ENABLED") == "True"
 OPTL_NAMESPACE = os.environ.get("OPTL_NAMESPACE", "core")
 OPTL_UDS_PATH = os.environ.get("OPTL_UDS_PATH", "/var/run/datadog/dsd.socket")
 OPTL_METRIC_EXPORT_INTERVAL = float(os.environ.get("OPTL_METRIC_EXPORT_INTERVAL", 60))

@@ -12,3 +12,4 @@ PATTERNS_IGNORED_IN_QUERY_CAPTURES: List[Union[Pattern, SimpleLazyObject]] = [
 ]
 
 DEFAULT_BACKUP_BUCKET_NAME = "testbackups"
+OPTL_ENABLED = True
