@@ -54,3 +54,24 @@ def test_non_graphql_request_does_not_increment_gql_counter(
     response = api_client.get("/")
     assert response.status_code == 200
     mocked_gql_request_counter.assert_not_called()
+
+
+def test_counts_batch_queries_as_separate_requests(
+    api_client, mocked_gql_request_counter
+):
+    """
+    Ensures a middleware is incrementing the request count for each and every sub-query
+    """
+    query = {"query": "{ __typename }"}
+    batch_payload = [query, query]
+
+    # Tenant #1: project_id = 23, model = monthly
+    response = api_client.post(data=batch_payload)
+    assert response.status_code == 200
+
+    # (<increment>, <labels>)
+    expected_calls = [
+        call(1, {"project_id": 23, "host": "", "model": "monthly"}),
+        call(1, {"project_id": 23, "host": "", "model": "monthly"}),
+    ]
+    mocked_gql_request_counter.assert_has_calls(expected_calls)
