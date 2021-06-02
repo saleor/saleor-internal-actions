@@ -1,7 +1,6 @@
 from typing import List
 
 import pytest
-from _pytest.fixtures import FixtureRequest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
@@ -24,7 +23,7 @@ def get_django_sql_count_queries(captured: List[dict]) -> List[dict]:
 )
 def test_partially_get_tenant_current_usage(
     as_other_tenant,
-    request: FixtureRequest,
+    request,
     staff_api_client,
     field: str,
     expected_count: int,

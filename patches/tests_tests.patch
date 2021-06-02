@@ -35,40 +35,13 @@ index dda748fd9..ed2eed114 100644
 -        "http://testserver/media/user-avatars/new_image"
 +        "http://mirumee.com/media/mirumee.com/user-avatars/new_image"
      )
- 
- 
+
+
 diff --git a/saleor/graphql/core/tests/test_file_upload.py b/saleor/graphql/core/tests/test_file_upload.py
-index 9d8b8cef2..4ea6747ed 100644
+index cf29e0563..2e5c3f973 100644
 --- a/saleor/graphql/core/tests/test_file_upload.py
 +++ b/saleor/graphql/core/tests/test_file_upload.py
-@@ -38,7 +38,7 @@ def test_file_upload_by_staff(staff_api_client, site_settings, media_root):
-     data = content["data"]["fileUpload"]
-     errors = data["errors"]
- 
--    expected_path = "http://testserver/media/" + image_file._name
-+    expected_path = "http://mirumee.com/media/" + image_file._name
-     assert not errors
-     assert data["uploadedFile"]["contentType"] == "image/png"
-     assert data["uploadedFile"]["url"] == expected_path
-@@ -76,7 +76,7 @@ def test_file_upload_by_app(app_api_client, media_root):
-     data = content["data"]["fileUpload"]
-     errors = data["errors"]
- 
--    expected_path = "http://testserver/media/" + image_file._name
-+    expected_path = "http://mirumee.com/media/" + image_file._name
-     assert not errors
-     assert data["uploadedFile"]["contentType"] == "image/png"
-     assert data["uploadedFile"]["url"] == expected_path
-@@ -99,7 +99,7 @@ def test_file_upload_by_superuser(superuser_api_client, media_root):
-     data = content["data"]["fileUpload"]
-     errors = data["errors"]
- 
--    expected_path = "http://testserver/media/" + image_file._name
-+    expected_path = "http://mirumee.com/media/" + image_file._name
-     assert not errors
-     assert data["uploadedFile"]["contentType"] == "image/png"
-     assert data["uploadedFile"]["url"] == expected_path
-@@ -137,6 +137,6 @@ def test_file_upload_file_with_the_same_name_already_exists(
+@@ -149,6 +149,7 @@ def test_file_upload_file_with_the_same_name_already_exists(
      assert not errors
      assert data["uploadedFile"]["contentType"] == "image/png"
      file_url = data["uploadedFile"]["url"]
@@ -77,12 +50,24 @@ index 9d8b8cef2..4ea6747ed 100644
 -    assert default_storage.exists(file_url.replace("http://testserver/media/", ""))
 +    assert file_url != "http://mirumee.com/media/" + image_file._name
 +    assert file_url != "http://mirumee.com/media/" + path
++    assert file_url.startswith("http://mirumee.com/media/")
 +    assert default_storage.exists(file_url.replace("http://mirumee.com/media/", ""))
+
+
 diff --git a/saleor/graphql/page/tests/test_page.py b/saleor/graphql/page/tests/test_page.py
-index 5739b4081..2f1ec12df 100644
+index 3f54c2c2d..fde83d207 100644
 --- a/saleor/graphql/page/tests/test_page.py
 +++ b/saleor/graphql/page/tests/test_page.py
-@@ -567,7 +567,7 @@ def test_create_page_with_file_attribute_new_attribute_value(
+@@ -496,7 +496,7 @@ def test_create_page_with_file_attribute(
+                 "slug": f"{attr_value.slug}-2",
+                 "name": attr_value.name,
+                 "file": {
+-                    "url": f"http://testserver/media/{attr_value.file_url}",
++                    "url": f"http://mirumee.com/media/{attr_value.file_url}",
+                     "contentType": None,
+                 },
+                 "reference": None,
+@@ -570,7 +570,7 @@ def test_create_page_with_file_attribute_new_attribute_value(
                  "reference": None,
                  "name": new_value,
                  "file": {
@@ -91,7 +76,7 @@ index 5739b4081..2f1ec12df 100644
                      "contentType": new_value_content_type,
                  },
              }
-@@ -1250,7 +1250,7 @@ def test_update_page_with_file_attribute_value(
+@@ -1285,7 +1285,7 @@ def test_update_page_with_file_attribute_value(
                  "name": new_value,
                  "reference": None,
                  "file": {
@@ -100,12 +85,31 @@ index 5739b4081..2f1ec12df 100644
                      "contentType": None,
                  },
              }
+@@ -1338,7 +1338,7 @@ def test_update_page_with_file_attribute_new_value_is_not_created(
+                 "name": existing_value.name,
+                 "reference": None,
+                 "file": {
+-                    "url": f"http://testserver/media/{existing_value.file_url}",
++                    "url": f"http://mirumee.com/media/{existing_value.file_url}",
+                     "contentType": existing_value.content_type,
+                 },
+             }
+
+
 diff --git a/saleor/graphql/product/tests/test_product.py b/saleor/graphql/product/tests/test_product.py
-index ad695bce8..7b8bbff4e 100644
+index d31b3c5d2..a203efb31 100644
 --- a/saleor/graphql/product/tests/test_product.py
 +++ b/saleor/graphql/product/tests/test_product.py
-@@ -2795,8 +2795,8 @@ def test_create_product_with_file_attribute_new_attribute_value(
-                     "slug": slugify(non_existing_value, allow_unicode=True),
+@@ -3373,7 +3373,7 @@ def test_create_product_with_file_attribute(
+                     "name": existing_value.name,
+                     "slug": f"{existing_value.slug}-2",
+                     "file": {
+-                        "url": f"http://testserver/media/{existing_value.file_url}",
++                        "url": f"http://mirumee.com/media/{existing_value.file_url}",
+                         "contentType": None,
+                     },
+                     "reference": None,
+@@ -3657,7 +3657,7 @@ def test_create_product_with_file_attribute_new_attribute_value(
                      "reference": None,
                      "richText": None,
                      "file": {
@@ -114,7 +118,7 @@ index ad695bce8..7b8bbff4e 100644
                          "contentType": None,
                      },
                  }
-@@ -3886,7 +3886,7 @@ def test_update_product_with_file_attribute_value(
+@@ -4912,7 +4912,7 @@ def test_update_product_with_file_attribute_value(
                  "slug": slugify(new_value),
                  "reference": None,
                  "file": {
@@ -123,3 +127,27 @@ index ad695bce8..7b8bbff4e 100644
                      "contentType": None,
                  },
              }
+@@ -4973,7 +4973,7 @@ def test_update_product_with_file_attribute_value_new_value_is_not_created(
+                 "slug": existing_value.slug,
+                 "reference": None,
+                 "file": {
+-                    "url": f"http://testserver/media/{existing_value.file_url}",
++                    "url": f"http://mirumee.com/media/{existing_value.file_url}",
+                     "contentType": existing_value.content_type,
+                 },
+             }
+
+
+diff --git a/saleor/graphql/product/tests/test_variant.py b/saleor/graphql/product/tests/test_variant.py
+index 028dbd600..1f0f6992f 100644
+--- a/saleor/graphql/product/tests/test_variant.py
++++ b/saleor/graphql/product/tests/test_variant.py
+@@ -1913,7 +1913,7 @@ def test_update_product_variant_with_file_attribute_new_value_is_not_created(
+     assert value_data["name"] == existing_value.name
+     assert (
+         value_data["file"]["url"]
+-        == f"http://testserver/media/{existing_value.file_url}"
++        == f"http://mirumee.com/media/{existing_value.file_url}"
+     )
+     assert value_data["file"]["contentType"] == existing_value.content_type
+
