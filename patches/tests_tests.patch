@@ -26,8 +26,8 @@ index dda748fd9..ed2eed114 100644
 -        "http://testserver/media/user-avatars/avatar"
 +        "http://mirumee.com/media/mirumee.com/user-avatars/avatar"
      )
- 
-     # The image creation should have triggered a warm-up
+     img_name, format = os.path.splitext(image_file._name)
+     file_name = user.avatar.name
 @@ -3743,7 +3743,7 @@ def test_user_avatar_update_mutation_image_exists(staff_api_client, media_root):
  
      assert user.avatar != avatar_mock
