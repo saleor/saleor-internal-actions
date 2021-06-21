@@ -5,5 +5,9 @@ DOCKER=${DOCKER:-docker}
 TAG=${1:-tenant}
 shift
 
+UPSTREAM=mirumee/saleor
+VERSION=master
+
 set -x
-$DOCKER build --build-arg VERSION=master --build-arg UPSTREAM=mirumee/saleor -t "$TAG" "$@" .
+$DOCKER pull "$UPSTREAM":"$VERSION"
+$DOCKER build --build-arg VERSION="$VERSION" --build-arg UPSTREAM="$UPSTREAM" -t "$TAG" "$@" .
