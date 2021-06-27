@@ -1,0 +1,21 @@
+# https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/dogstatsd-metric-exporter"
+  schedule:
+    interval: monthly
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: black
+    versions:
+    - "> 19.10b0"
+  - dependency-name: opentelemetry-api
+    versions:
+    - ">= 1.a, < 2"
+  - dependency-name: opentelemetry-sdk
+    versions:
+    - ">= 1.a, < 2"
+  - dependency-name: pytest-benchmark
+    versions:
+    - 3.4.1
