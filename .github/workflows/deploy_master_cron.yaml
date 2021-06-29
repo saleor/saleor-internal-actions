@@ -119,13 +119,8 @@ jobs:
       - name: Notify Slack
         if: ${{ always() }}
         env:
+          JOB_DEPLOYMENT_KIND: Master Staging
           JOB_STATUS: ${{ job.status }}
-          WEBHOOK_URL: ${{ secrets.SLACK_ERRORS_STAGING_WEBHOOK_URL }}
-        run: |
-          if  [[ "$JOB_STATUS" = "success" ]]; then
-            body=".github/workflows/slack_webhook_build_success.json"
-          else
-            body=".github/workflows/slack_webhook_build_failed.json"
-          fi
-
-          curl -v -X POST -H "content-type: application/json" --data @"$body" "$WEBHOOK_URL"
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ERRORS_STAGING_WEBHOOK_URL }}
+          JOB_PR_TITLE: Master Staging Deployment
+        run: ./.github/workflows/notify/notify-slack.py

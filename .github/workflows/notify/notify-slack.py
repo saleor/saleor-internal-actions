@@ -51,9 +51,6 @@ class JobNotifier:
         # <owner>/<repo>
         self.repository: str = os.environ["GITHUB_REPOSITORY"]
 
-        # The user that triggered the action
-        self.author: str = os.environ["GITHUB_ACTOR"]
-
         # Job Status (success|failure|cancelled)
         self.job_status: str = os.environ["JOB_STATUS"]
 
@@ -67,12 +64,29 @@ class JobNotifier:
         """Color from Saleor Cloud palette for job status"""
         return self.JOB_STATUS_COLOR_MAP[self.job_status]
 
+    @property
+    def actor_name(self) -> str:
+        """
+        Returns the name of the person that triggered the event or return "Scheduled"
+
+        If the event was a scheduled job, always return "Scheduled" as actor name.
+        Otherwise, the actor is the person that did the last commit or merge.
+
+        Mentioning the user could mean pinging that person depending on their Slack
+        settings.
+        """
+        event_name: str = os.environ["GITHUB_EVENT_NAME"]
+
+        if event_name == "schedule":
+            return "Scheduled"
+        return os.environ["GITHUB_ACTOR"]
+
     def make_slack_message(self) -> dict:
         status = self.job_status.capitalize()
         # Dev deployment triggered by JohnDoe: Success
         text = (
-            f"{self.author} deployment finished for '{self.deployment_kind.capitalize()}', result: "
-            f"{status}"
+            f"{self.actor_name} deployment finished for *'{self.deployment_kind.capitalize()}'*, "
+            f"result: {status}"
         )
         message_data = {
             "attachments": [
