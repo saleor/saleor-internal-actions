@@ -1,3 +1,5 @@
+import json
+from typing import Dict, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,65 +19,64 @@ def mocked_create_schema() -> MagicMock:
 
 
 @pytest.mark.parametrize(
-    "name, limit_opts, expected",
+    "name, limit_opts",
     [
         (
             "provide all limit options",
-            (
-                "--channels",
-                "10",
-                "--products",
-                "9",
-                "--warehouses",
-                "8",
-                "--staff",
-                "7",
-                "--allowance-period",
-                "weekly",
-            ),
             {
+                "orders_hard_limited": True,
+                "allowance_period": "weekly",
                 "max_channel_count": 10,
                 "max_sku_count": 9,
                 "max_warehouse_count": 8,
                 "max_staff_user_count": 7,
-                "allowance_period": "weekly",
+                "max_order_count": 6,
             },
         ),
         (
             "provide partially limit options, expect unlimited for missing options",
-            ("--channels", "10", "--products", "9",),
             {
                 "max_channel_count": 10,
                 "max_sku_count": 9,
-                "max_warehouse_count": -1,
-                "max_staff_user_count": -1,
-                "allowance_period": "monthly",
             },
         ),
         (
             "provide no limit options, expect unlimited",
-            (),
-            {
-                "max_channel_count": -1,
-                "max_sku_count": -1,
-                "max_warehouse_count": -1,
-                "max_staff_user_count": -1,
-                "allowance_period": "monthly",
-            },
+            {},
         ),
+        (
+            "provide null",
+            None,
+        )
     ],
 )
 def test_create_tenant_with_limits_set(
-    as_public, mocked_create_schema, name, limit_opts, expected
+    as_public, mocked_create_schema, name, limit_opts: Optional[Dict]
 ):
     domain = "my.tenant.test"
+
+    expected = limit_opts.copy() if limit_opts is not None else {}
+
+    # Default values when missing
+    expected.setdefault("orders_hard_limited", False)
+    expected.setdefault("allowance_period", "monthly")
+    expected.setdefault("max_channel_count", -1)
+    expected.setdefault("max_sku_count", -1)
+    expected.setdefault("max_warehouse_count", -1)
+    expected.setdefault("max_staff_user_count", -1)
+    expected.setdefault("max_order_count", -1)
 
     # Check does not exist yet
     tenant_qs = Tenant.objects.filter(domain_url=domain, schema_name="mytenanttest")
     assert tenant_qs.exists() is False, "should not be existing"
 
+    # Invoke
+    if limit_opts is None:
+        cmd_args = ()
+    else:
+        cmd_args = ("--billing-opts", json.dumps(limit_opts))
     call_command(
-        CMD, "my.tenant.test", "-s", "mytenanttest", "--project-id", "34", *limit_opts
+        CMD, "my.tenant.test", "-s", "mytenanttest", "--project-id", "34", *cmd_args
     )
 
     fields = billing_models.FIELDS

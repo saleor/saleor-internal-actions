@@ -5,19 +5,31 @@ from tenants.postgresql_backend.base import DatabaseWrapper as TenantConnection
 
 connection: TenantConnection
 
+ORDERS_HARD_LIMITED = "orders_hard_limited"
 MAX_STAFF_USER_COUNT = "max_staff_user_count"
 MAX_WAREHOUSE_COUNT = "max_warehouse_count"
 MAX_CHANNEL_COUNT = "max_channel_count"
 MAX_SKU_COUNT = "max_sku_count"
+MAX_ORDER_COUNT = "max_order_count"
 ALLOWANCE_PERIOD = "allowance_period"
 
-FIELDS = (
+LIMIT_FIELDS = {
     MAX_STAFF_USER_COUNT,
     MAX_WAREHOUSE_COUNT,
     MAX_CHANNEL_COUNT,
     MAX_SKU_COUNT,
+    MAX_ORDER_COUNT,
+}
+
+BILLING_INFO_FIELDS = {
+    ORDERS_HARD_LIMITED,
     ALLOWANCE_PERIOD,
-)
+}
+
+FIELDS = {
+    *LIMIT_FIELDS,
+    *BILLING_INFO_FIELDS,
+}
 
 
 class TenantLimitsMixin(models.Model):
@@ -39,12 +51,17 @@ class TenantLimitsMixin(models.Model):
         * Warehouses: stock locations
         * Channels: currencies available for the shop
         * SKUs: the number of product variants (a product always have at least 1 variant)
+        * Orders: includes draft orders
     """
+
+    orders_hard_limited = models.BooleanField()
 
     max_staff_user_count = models.IntegerField()
     max_warehouse_count = models.IntegerField()
     max_channel_count = models.IntegerField()
     max_sku_count = models.IntegerField()
+    max_order_count = models.IntegerField()
+
     allowance_period = models.CharField(max_length=20)
 
     objects: QuerySet

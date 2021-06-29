@@ -1,4 +1,4 @@
-import dataclasses
+from datetime import datetime
 from typing import Any, Callable, Dict, Optional, Union
 
 from django.conf import settings
@@ -10,6 +10,7 @@ from graphql.language.ast import Field
 import saleor.account.models as user_models
 import saleor.channel.models as channel_models
 import saleor.product.models as product_models
+import saleor.order.models as order_models
 import saleor.warehouse.models as warehouse_models
 from tenants.models import Tenant
 from tenants.telemetry.controller import Telemetry
@@ -18,16 +19,84 @@ from . import errors
 from . import models as m
 
 
-@dataclasses.dataclass
 class LimitInfo:
-    # The name of resource that is limited
-    resource_plural: str
+    __slots__ = (
+        "resource_plural",
+        "tenant_field",
+        "qs",
+        "hard_limited_field_name",
+    )
 
-    # The field of tenant to retrieve limit from
-    tenant_field: str
+    def __init__(
+        self,
+        resource_plural: str,
+        tenant_field: str,
+        qs: Union[QuerySet, Manager],
+        hard_limited_field_name: str = None,
+    ):
+        """
+        :param resource_plural: name of the resource that is limited
+        :param tenant_field: field of tenant to retrieve limit from
+        :param qs: lookup for determining usage, will be invoked with ``count()``
+        :param hard_limited_field:
+            - When a hard-limited flag exists and resolves to False, skip the check.
+            - When hard-limited flag does not exist, it is always hard-limited,
+              thus check.
+        """
+        self.resource_plural = resource_plural
+        self.tenant_field = tenant_field
+        self.qs = qs
+        self.hard_limited_field_name = hard_limited_field_name
 
-    # Queryset to lookup if the limit exceeds, will be invoked with ``count()``
-    qs: Union[QuerySet, Manager]
+    def is_hard_limited(self, tenant: Tenant) -> bool:
+        if self.hard_limited_field_name is None:
+            return True
+        return getattr(tenant, self.hard_limited_field_name)
+
+    def get_qs(self, tenant: Tenant):
+        return self.qs
+
+    def check_limit(self, tenant: Tenant) -> Optional[errors.LimitReachedException]:
+        # Check if tenant should be hard limited for that mutation
+        # If the tenant is not hard-limited, then skip checking usage
+        if self.is_hard_limited(tenant) is False:
+            return None
+
+        maximum: int = getattr(tenant, self.tenant_field)
+
+        # Skip getting the current count if the value is -1, means they are unlimited
+        if maximum == -1:
+            return None
+
+        # Retrieve the count of the limited entries
+        qs = self.get_qs(tenant)
+        current: int = qs.count()
+
+        if current >= maximum:
+            return errors.LimitReachedException(
+                resource_plural=self.resource_plural,
+                maximum_count=maximum,
+                current=current,
+            )
+        return None
+
+
+class OrderLimit(LimitInfo):
+    def get_qs(self, tenant: Tenant):
+        now_dt = datetime.now()
+
+        # Retrieve the start day from which to count
+        if tenant.allowance_period == "daily":
+            day = now_dt.day
+        elif tenant.allowance_period == "monthly":
+            day = 1
+        else:
+            raise RuntimeError("Unknown allowance period", tenant.allowance_period)
+
+        # Exclude orders outside of the current allowance range
+        after_dt = datetime(now_dt.year, now_dt.month, day)
+        qs = self.qs.filter(created__gte=after_dt)
+        return qs
 
 
 staff_users_limit = LimitInfo(
@@ -41,6 +110,13 @@ warehouse_limit = LimitInfo(
 )
 channel_limit = LimitInfo(
     "Channels", m.MAX_CHANNEL_COUNT, channel_models.Channel.objects
+)
+
+order_limit = OrderLimit(
+    "Orders",
+    m.MAX_ORDER_COUNT,
+    order_models.Order.objects,
+    hard_limited_field_name="orders_hard_limited",
 )
 
 
@@ -57,28 +133,10 @@ class TenantPlanLimitMiddleware:
         "warehouseCreate": warehouse_limit,
         # Channel
         "channelCreate": channel_limit,
+        # Blocks checkouts and draft orders
+        "checkoutComplete": order_limit,
+        "draftOrderCreate": order_limit,
     }
-
-    @classmethod
-    def _check_limit(
-        cls, tenant: Tenant, limit_info: LimitInfo
-    ) -> Optional[errors.LimitReachedException]:
-        maximum: int = getattr(tenant, limit_info.tenant_field)
-
-        # Skip getting the current count if the value is -1, means they are unlimited
-        if maximum == -1:
-            return None
-
-        # Retrieve the count of the limited entries
-        current: int = limit_info.qs.count()
-
-        if current >= maximum:
-            return errors.LimitReachedException(
-                resource_plural=limit_info.resource_plural,
-                maximum_count=maximum,
-                current=current,
-            )
-        return None
 
     @classmethod
     def is_mutation_allowed(
@@ -91,7 +149,7 @@ class TenantPlanLimitMiddleware:
             return None
 
         # Check if the user can proceed on that tenant, i.e. has enough slots
-        error_result = cls._check_limit(tenant, limit_info)
+        error_result = limit_info.check_limit(tenant)
         return error_result
 
     @classmethod

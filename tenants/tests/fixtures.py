@@ -58,7 +58,7 @@ def super_user_other_tenant_api_client(other_tenant):
 
 
 @pytest.fixture
-def as_other_tenant(other_tenant):
+def as_other_tenant(other_tenant) -> Tenant:
     with tenant_context(other_tenant):
         yield other_tenant
 

@@ -1,15 +1,24 @@
 from django.conf import settings
 from django.db import connection
 
-from tenants.management.argparse import location_type, LOCATION_TYPE
-from tenants.management.billing_plan_manager import BillingPlanManagement, T_LIMITS
-
-from ...models import Tenant
-from . import restore_tenant
+from tenants.limits.models import LIMIT_FIELDS
+from tenants.management.argparse import LOCATION_TYPE, location_type
+from tenants.management.billing_plan_manager import BillingOptionsParser
+from tenants.management.commands import restore_tenant
+from tenants.models import Tenant
 
 
 class Command(restore_tenant.Command):
     help = "Create new tenant and dedicated database schema"
+
+    @staticmethod
+    def make_billing_opts_parser() -> BillingOptionsParser:
+        billing_opts_parser = BillingOptionsParser()
+        defaults = {field: -1 for field in LIMIT_FIELDS}
+        billing_opts_parser.set_defaults(
+            allowance_period="monthly", orders_hard_limited=False, **defaults
+        )
+        return billing_opts_parser
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -47,8 +56,8 @@ class Command(restore_tenant.Command):
         super().add_arguments(parser, add_location_arg=False)
         parser.set_defaults(bucket_name=settings.DEFAULT_BACKUP_BUCKET_NAME)
 
-        # Add billing plan limitation options
-        BillingPlanManagement.add_arguments(parser, required=False, default=-1)
+        billing_opts_parser = self.make_billing_opts_parser()
+        billing_opts_parser.add_arguments(parser)
 
     @staticmethod
     def create_schema(tenant: Tenant):
@@ -62,19 +71,18 @@ class Command(restore_tenant.Command):
         project_id: int,
         location: LOCATION_TYPE = None,
         allowed_client_origins: list[str] = None,
+        billing_opts: BillingOptionsParser,
         **options
     ):
         domain_url = domain_url.lower()
         default_schema_name = domain_url.split(".")[0]
-
-        limits: T_LIMITS = BillingPlanManagement.extract_limits_from_opts(options)
 
         # Prepare creation options for tenant
         tenants_args = {
             "domain_url": domain_url,
             "schema_name": schema or default_schema_name,
             "project_id": project_id,
-            **limits,
+            **billing_opts.parsed_options,
         }
 
         # Set allowed origins if specified

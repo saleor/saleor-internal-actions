@@ -3,14 +3,19 @@ import os
 import subprocess
 import tempfile
 import urllib.parse
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import boto3
 from boto3_type_annotations.s3 import Client
 from django.contrib.sites.models import Site
-from django.core.management import call_command, CommandError, BaseCommand
+from django.core.management import (
+    call_command,
+    CommandError,
+    BaseCommand,
+    CommandParser,
+)
 from django.db import connection
 
 from tenants.management.argparse import (
@@ -39,7 +44,7 @@ class Command(BaseCommand):
         self._manager: Optional[TenantDump] = None
         self.super_cmd_options: Optional[Dict[str, Any]] = None
 
-    def add_arguments(self, parser: ArgumentParser, add_location_arg=True):
+    def add_arguments(self, parser: CommandParser, add_location_arg=True):
         super().add_arguments(parser)
         remove_actions(parser, "args")
 

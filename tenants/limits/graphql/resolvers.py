@@ -2,7 +2,6 @@ from typing import Union, Type, Optional
 
 from django.db import connection
 
-from saleor.order.models import Order
 from .. import middleware as limits_middleware
 
 T_LIMIT_RESOLVER = Union[Type["AllowedUsageResolver"], Type["CurrentUsageResolver"]]
@@ -15,7 +14,7 @@ class CurrentUsageResolver:
 
     @staticmethod
     def orders():
-        return Order.objects.count()
+        return limits_middleware.order_limit.get_qs(connection.tenant).count()
 
     @staticmethod
     def product_variants():
@@ -43,8 +42,9 @@ class AllowedUsageResolver:
 
     @classmethod
     def orders(cls):
-        # Not currently implemented in multi-tenant
-        return None
+        if connection.tenant.orders_hard_limited is False:
+            return None
+        return cls.format_value(connection.tenant.max_order_count)
 
     @classmethod
     def product_variants(cls):

@@ -32,6 +32,8 @@ DEFAULT_TEST_TENANT = {
     "max_staff_user_count": -1,
     "max_warehouse_count": -1,
     "max_sku_count": -1,
+    "max_order_count": -1,
+    "orders_hard_limited": False,
     "allowance_period": "monthly",
 }
 
@@ -43,6 +45,8 @@ OTHER_TEST_TENANT = {
     "max_staff_user_count": 3,
     "max_warehouse_count": 4,
     "max_sku_count": 5,
+    "max_order_count": 10,
+    "orders_hard_limited": True,
     "allowance_period": "daily",
 }
 

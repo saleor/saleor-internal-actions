@@ -2,7 +2,7 @@ from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
 
-from tenants.management.billing_plan_manager import BillingPlanManagement, T_LIMITS
+from tenants.management.billing_plan_manager import BillingOptionsParser
 from tenants.models import Tenant
 
 
@@ -33,7 +33,8 @@ class Command(BaseCommand):
         parser.add_argument("--project-id", type=int, help="Set project ID")
 
         # Add billing plan limitation options
-        BillingPlanManagement.add_arguments(parser, required=False)
+        billing_opts_parser = BillingOptionsParser()
+        billing_opts_parser.add_arguments(parser)
 
     def handle(
         self,
@@ -41,6 +42,7 @@ class Command(BaseCommand):
         new_domain: str,
         allowed_client_origins: list,
         project_id: int = None,
+        billing_opts: BillingOptionsParser,
         **options
     ):
         with transaction.atomic():
@@ -51,11 +53,9 @@ class Command(BaseCommand):
 
             # Keep track of fields to save
             updated_fields = []
-            limits = BillingPlanManagement.extract_limits_from_opts(options)
 
-            if limits:
-                BillingPlanManagement.set_tenant_limits(tenant, limits)
-                updated_fields += limits.keys()
+            if billing_opts.parsed_options:
+                updated_fields += billing_opts.set_tenant_limits(tenant)
 
             if project_id is not None:
                 tenant.project_id = project_id

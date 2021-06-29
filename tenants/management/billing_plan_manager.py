@@ -1,62 +1,56 @@
 import argparse
-from functools import partial
-from typing import Any, Union
+import json
+from typing import List
 
 from tenants.limits import models as m
 from tenants.models import Tenant
 
-T_LIMITS = dict[str, Union[int, str]]
 
-
-class BillingPlanManagement:
-    @classmethod
-    def extract_limits_from_opts(cls, options: dict[str, Any]) -> T_LIMITS:
-        """
-        Extracts all billing information fields from the parsed namespace
-        
-        Expects all fields to be supplied:
-        - If the parameters are not required, we expect non-null defaults for missing values
-        - If the parameters are all required, we expect only user inputs as values
-        
-        If the two conditions are not true, a `KeyError` exception is expected.
-        """
-        found = {}
-        for field_name in m.FIELDS:
-            value = options[field_name]
-            if value is not None:
-                found[field_name] = value
-        return found
+class BillingOptionsParser:
+    def __init__(self):
+        self.parsed_options = {}
 
     @classmethod
-    def add_arguments(
-        cls, parser: argparse.ArgumentParser, default: int = None, required: bool = True
-    ):
+    def make_example_help_text(cls) -> str:
+        example = {
+            "orders_hard_limited": True,
+            "allowance_period": "monthly",
+            **{f: -1 for f in m.LIMIT_FIELDS},
+        }
+        return json.dumps(example, indent=4)
+
+    def set_defaults(self, **defaults) -> "BillingOptionsParser":
+        self.parsed_options.update(defaults)
+        return self
+
+    def parse_from_dict(self, payload: dict):
+        input_keys = set(payload.keys())
+        expected_keys = m.FIELDS
+        unknown_fields = input_keys.difference(expected_keys)
+
+        if unknown_fields:
+            raise ValueError("Unknown fields", unknown_fields)
+
+        self.parsed_options.update(payload)
+
+    def parse_from_str(self, input_string: str) -> "BillingOptionsParser":
+        self.parse_from_dict(json.loads(input_string))
+        return self
+
+    def add_arguments(self, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(
-            "Billing Plan Limits", "Set the environment plan usage limit constraints"
+            "Billing Plan Limits",
+            (
+                "Set the environment plan usage limit constraints, example usage: \n"
+                + self.make_example_help_text()
+            ),
         )
-        add_argument = partial(
-            group.add_argument, type=int, default=default, required=required,
-        )
+        group.add_argument("--billing-opts", type=self.parse_from_str, default=self)
 
-        add_argument("--products", dest=m.MAX_SKU_COUNT)
-        add_argument("--channels", dest=m.MAX_CHANNEL_COUNT)
-        add_argument("--warehouses", dest=m.MAX_WAREHOUSE_COUNT)
-        add_argument("--staff", dest=m.MAX_STAFF_USER_COUNT)
-
-        if required is True:
-            group.add_argument(
-                "--allowance-period", dest=m.ALLOWANCE_PERIOD, required=True
-            )
-        else:
-            group.add_argument(
-                "--allowance-period",
-                dest=m.ALLOWANCE_PERIOD,
-                required=False,
-                default="monthly",
-            )
-
-    @classmethod
-    def set_tenant_limits(cls, tenant: Tenant, limits: T_LIMITS):
+    def set_tenant_limits(self, tenant: Tenant) -> List[str]:
         """Set every provided limit to the given tenant"""
-        for limit_field, limit_value in limits.items():
+        updated = []
+        for limit_field, limit_value in self.parsed_options.items():
             setattr(tenant, limit_field, limit_value)
+            updated.append(limit_field)
+        return updated
