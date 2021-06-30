@@ -1,21 +1,22 @@
 diff --git a/saleor/celeryconf.py b/saleor/celeryconf.py
-index 997845518..db121232a 100644
+index 62bff26..7ffa5ec 100644
 --- a/saleor/celeryconf.py
 +++ b/saleor/celeryconf.py
-@@ -1,13 +1,13 @@
- import os
- 
--from celery import Celery
+@@ -4,6 +4,7 @@ import os
+ from celery import Celery
+ from celery.signals import setup_logging
  from django.conf import settings
 +from tenant_schemas_celery.app import CeleryApp
- 
+
  from .plugins import discover_plugins_modules
- 
+
+@@ -23,7 +24,7 @@ def setup_celery_logging(loglevel=None, **kwargs):
+
  os.environ.setdefault("DJANGO_SETTINGS_MODULE", "saleor.settings")
- 
+
 -app = Celery("saleor")
 +app = CeleryApp("saleor")
- 
+
  app.config_from_object("django.conf:settings", namespace="CELERY")
  app.autodiscover_tasks()
 
