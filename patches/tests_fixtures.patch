@@ -1,8 +1,8 @@
 diff --git a/conftest.py b/conftest.py
-index 62f7fb73b..4e4fc1776 100644
+index b2bca8e..1fb5ecf 100644
 --- a/conftest.py
 +++ b/conftest.py
-@@ -1,7 +1,54 @@
+@@ -1,4 +1,13 @@
 +import pytest
 +from django.db import connection
 +from tenant_schemas.utils import get_tenant_model
@@ -16,7 +16,8 @@ index 62f7fb73b..4e4fc1776 100644
      "saleor.tests.fixtures",
      "saleor.plugins.tests.fixtures",
      "saleor.graphql.tests.fixtures",
-     "saleor.graphql.channel.tests.fixtures",
+@@ -6,3 +15,41 @@ pytest_plugins = [
+     "saleor.graphql.account.tests.benchmark.fixtures",
      "saleor.graphql.order.tests.benchmark.fixtures",
  ]
 +
