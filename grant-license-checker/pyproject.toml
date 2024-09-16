@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "grant-license-checker"
+version = "0.1.0"
+description = "Generates a report of licenses used by main and transient dependencies, and checks for compliance issues."
+authors = ["Saleor Commerce <hello@saleor.io>"]
+license = "BSD-3-Clause"
+readme = "README.md"
+
+[tool.poetry.scripts]
+grant-summarize = "grant_license_checker.cmd.grant_summarize:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+jinja2 = "^3.1.4"
+pydantic = "^2.8.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+omit = [
+    # Omit tests.
+    "*/tests/*",
+    ]
+
+[tool.coverage.report]
+exclude_also = [
+    # Ignore debug-only code.
+    "def __repr__",
+    "if self\\.debug",
+
+    # Ignore defensive assertion code.
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Ignore non-runnable code.
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Ignore abstract methods.
+    "@(abc\\.)?abstractmethod",
+    ]
+

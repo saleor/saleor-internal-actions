@@ -1,0 +1,108 @@
+name: grant-license-checker
+description: >-
+  Generates a report of licenses used by main and transient dependencies,
+  and checks for compliance issues.
+inputs:
+  sbom_path:
+    required: true
+    description: >-
+      The path of the SBOM to analyze.
+      Supported formats: SPDX, CycloneDX, Syft.
+  rules:
+    description: >-
+      A list of grant YAML rules (default: deny all GPL licenses).
+      More details at: https://github.com/anchore/grant/blob/v0.2.1/README.md#usage.
+    default: |
+      - pattern: "*gpl*"
+        name: "default-deny-gpl"
+        mode: "deny"
+        reason: "GPL licenses are not compatible with BSD-3-Clause."
+outputs:
+  results_dir_path:
+    description: "Where all the results files are stored (JSON, and HTML)"
+    value: ${{ steps.results-paths.outputs.results_dir }}
+  grant_json_path:
+    description: "Where the JSON results of grant are stored"
+    value: ${{ steps.results-paths.outputs.grant_json_path }}
+  grant_html_path:
+    description: "Where the HTML results of grant are stored"
+    value: ${{ steps.results-paths.outputs.grant_html_path }}
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
+      with:
+        # Note: make sure to update `poetry env use pythonX.Y` below.
+        python-version: '3.12'
+
+    - name: Install Python Dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        pip install poetry~=1.8.0
+        poetry env use python3.12
+        poetry install --only=main
+        echo "$(poetry env info -p)"/bin >> "$GITHUB_PATH"
+
+    - name: Install Grant
+      shell: bash
+      run: |
+        "${GITHUB_ACTION_PATH}/scripts/download-grant.sh"
+
+    - name: Set-up Results Path
+      id: results-paths
+      shell: bash
+      run: |
+        results_dir=.grant/results
+        mkdir -p "$results_dir"
+        {
+          echo "results_dir=$results_dir"
+          echo "grant_json_path=$results_dir/grant.json"
+          echo "grant_html_path=$results_dir/grant.html"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Configure Grant
+      id: grant-cfg
+      shell: bash
+      env:
+        RULES_YAML_ARRAY: ${{ inputs.rules }}
+      run: |
+        cfg_path=./.grant.yaml
+        echo "cfg_path=$cfg_path" >> "$GITHUB_OUTPUT"
+
+        # Construct grant config YAML with the contents: `rules: [<user-input>]`
+        printf '%s' "$RULES_YAML_ARRAY" | yq '{"rules": .}' - > "$cfg_path"
+
+    - name: Check Dependencies
+      shell: bash
+      id: grant-check
+      env:
+        SBOM_PATH: ${{ inputs.sbom_path }}
+        RESULTS_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
+        GRANT_CONFIG_PATH: ${{ steps.grant-cfg.outputs.cfg_path }}
+      run: |
+        cmd_args=()
+        
+        # Enable trace and debug logging if the runner has debug mode enabled
+        test -z "${RUNNER_DEBUG+x}" || cmd_args+=( "-vvv" )
+        
+        ./.grant/grant check "$SBOM_PATH" \
+          -o json \
+          --show-packages \
+          "--config=$GRANT_CONFIG_PATH" \
+          "${cmd_args[@]}" > "$RESULTS_PATH"
+
+    - name: Generate Report
+      # Always generate the report, even if there are license violations
+      if: ${{ success() || ( failure() && steps.grant-check.conclusion == 'failure' ) }}
+      shell: bash
+      env:
+        RESULTS_JSON_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
+        RESULTS_HTML_PATH: ${{ steps.results-paths.outputs.grant_html_path }}
+      run: |
+        grant-summarize \
+          -i "$RESULTS_JSON_PATH" \
+          -f html \
+          -o "$RESULTS_HTML_PATH" \
+          --list-packages

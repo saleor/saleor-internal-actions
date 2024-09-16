@@ -1,0 +1,188 @@
+{
+  "report_id": "",
+  "timestamp": "2024-09-13T12:05:26+02:00",
+  "inputs": [
+    "../sample-sbom-v1.5.json"
+  ],
+  "results": [
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "0BSD",
+        "name": "BSD Zero Clause License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/0BSD.html",
+        "is_deprecated": false,
+        "license_id": "0BSD",
+        "see_also": [
+          "http://landley.net/toybox/license.html",
+          "https://opensource.org/licenses/0BSD"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "asgiref",
+        "version": "3.8.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "BSD-3-Clause",
+        "name": "BSD 3-Clause \"New\" or \"Revised\" License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/BSD-3-Clause.html",
+        "is_deprecated": false,
+        "license_id": "BSD-3-Clause",
+        "see_also": [
+          "https://opensource.org/licenses/BSD-3-Clause",
+          "https://www.eclipse.org/org/documents/edl-v10.php"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "asgiref",
+        "version": "3.8.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "0BSD",
+        "name": "BSD Zero Clause License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/0BSD.html",
+        "is_deprecated": false,
+        "license_id": "0BSD",
+        "see_also": [
+          "http://landley.net/toybox/license.html",
+          "https://opensource.org/licenses/0BSD"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "Django",
+        "version": "5.1.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "BSD-3-Clause",
+        "name": "BSD 3-Clause \"New\" or \"Revised\" License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/BSD-3-Clause.html",
+        "is_deprecated": false,
+        "license_id": "BSD-3-Clause",
+        "see_also": [
+          "https://opensource.org/licenses/BSD-3-Clause",
+          "https://www.eclipse.org/org/documents/edl-v10.php"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "Django",
+        "version": "5.1.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "0BSD",
+        "name": "BSD Zero Clause License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/0BSD.html",
+        "is_deprecated": false,
+        "license_id": "0BSD",
+        "see_also": [
+          "http://landley.net/toybox/license.html",
+          "https://opensource.org/licenses/0BSD"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "sqlparse",
+        "version": "0.5.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "Apache-2.0",
+        "name": "Apache License 2.0",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/Apache-2.0.html",
+        "is_deprecated": false,
+        "license_id": "Apache-2.0",
+        "see_also": [
+          "https://www.apache.org/licenses/LICENSE-2.0",
+          "https://opensource.org/licenses/Apache-2.0"
+        ],
+        "is_osi_approved": true
+      },
+      "package": {
+        "name": "tzdata",
+        "version": "2024.1",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "default-allow-all: license allowed by policy"
+      ]
+    },
+    {
+      "input": "../sample-sbom-v1.5.json",
+      "license": {
+        "spdx_expression": "",
+        "name": "",
+        "locations": null,
+        "reference": "",
+        "is_deprecated": false,
+        "license_id": "",
+        "see_also": null,
+        "is_osi_approved": false
+      },
+      "package": {
+        "name": "example-project",
+        "version": "0.1.0",
+        "type": "python",
+        "locations": []
+      },
+      "passed": true,
+      "reasons": [
+        "no license found"
+      ]
+    }
+  ]
+}
