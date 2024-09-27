@@ -25,7 +25,11 @@ class BaseRenderer:
             key=lambda o: (o.license.get_license_name().lower(), o.package.name.lower()),
         ):
             licenses = packages_by_licence[eval_result.license.get_license_name()]
-            licenses.append(eval_result.package)
+
+            # Do not append if it's a duplicate, cdxgen can generate many duplicates
+            # in the NPM ecosystem.
+            if eval_result.package not in licenses:
+                licenses.append(eval_result.package)
 
         # Sort by package count (ascending)
         sorted_list = sorted(

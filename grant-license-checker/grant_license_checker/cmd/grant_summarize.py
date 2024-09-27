@@ -60,7 +60,8 @@ class Command:
             "--max-packages",
             help=(
                 "The maximum number of packages to include in the output per license. "
-                "A value too large can potentially not fit inside GitHub comments."
+                "A value too large can potentially not fit inside GitHub comments. "
+                "-1 to disabled."
             ),
             default=20,
             type=int,

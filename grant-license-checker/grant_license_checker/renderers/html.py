@@ -22,7 +22,7 @@ HTML_TEMPLATE = """
                     <summary>Packages</summary>
                     <ul>
                         {% for pkg in package_list %}
-                        {% if loop.index0 > max_package_count - 1 %}
+                        {% if max_package_count >= 0 and loop.index0 > max_package_count - 1 %}
                             {# Truncate packages if there are too many. -#}
                             {% set remain = (package_list | length) - loop.index0 %}
                             <li>

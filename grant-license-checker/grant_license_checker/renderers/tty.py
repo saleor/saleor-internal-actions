@@ -11,7 +11,7 @@ TTY_TEMPLATE = """\
 {% if list_packages %}
     {%- for pkg in package_list -%}
         {# Truncate packages if there are too many. -#}
-        {%- if loop.index0 > max_package_count - 1 -%}
+        {%- if max_package_count >= 0 and loop.index0 > max_package_count - 1 -%}
             └──[{{ (package_list | length) - loop.index0 }} more...]
             {% break %}
         {% endif -%}
