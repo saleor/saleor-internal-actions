@@ -24,7 +24,7 @@ cmd_args=(
     "--recurse"
     "--output=$CONF_RESULT_PATH"
     "--profile=license-compliance"
-    # Path to the source code to analyze (inside the mounted container)
+    # Path to the source code to analyze
     "$CONF_PROJECT_DIR"
 )
 
