@@ -22,6 +22,20 @@ on:
         description: >-
           A list of grant YAML rules (default: deny all GPL licenses).
           More details at: https://github.com/anchore/grant/blob/v0.2.1/README.md#usage.
+      # The ecosystems to scan, scans all by default.
+      #
+      # See https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for the supported
+      # ecosystems ("Project Types" column).
+      ecosystems:
+        type: string
+        default: >-
+          python
+          javascript
+        description: >-
+          The ecosystem list to scan (space or newline separated).
+          Default: python and javascript.
+
+          See https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for the supported values.
 
 permissions:
   contents: read
@@ -50,9 +64,7 @@ jobs:
         uses: ./sbom-generator
         with:
           sbom_path: "./bom.json"
-          ecosystems: >-
-            python
-            javascript
+          ecosystems: ${{ inputs.ecosystems }}
 
       # When not running inside the same repository as the action,
       # use the action version as we cannot access our files inside
@@ -62,9 +74,7 @@ jobs:
         uses: saleor/saleor-internal-actions/sbom-generator@main
         with:
           sbom_path: "./bom.json"
-          ecosystems: >-
-            python
-            javascript
+          ecosystems: ${{ inputs.ecosystems }}
 
       # Send the results to the next job ('analyze-licenses').
       - name: Upload Results
