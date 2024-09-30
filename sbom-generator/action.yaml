@@ -1,0 +1,48 @@
+name: grant-license-checker
+description: >-
+  Generates a CycloneDX SBOM with license fetching enabled.
+inputs:
+  cdxgen_version:
+    default: "10.9.5"
+    description: >-
+      The cdxgen version to use to generate the CycloneDX SBOM.
+      List of available versions: https://github.com/CycloneDX/cdxgen/releases.
+  sbom_path:
+    default: "./sbom.json"
+    description: >-
+      Path where to store the generated SBOM.
+  project_path:
+    default: "."
+    description: >-
+      The path of the project to analyze. Defaults to current working directory.
+  ecosystems:
+    description: >-
+      The project types to support, e.g., `python` or `javascript` (delimited by spaces or newlines).
+      
+      List of supported values: https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES
+      ("Project Types" column).
+      
+      Default: scan all.
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install cdxgen
+      shell: bash
+      env:
+        CONF_CDXGEN_VERSION: "${{ inputs.cdxgen_version }}"
+      run: |
+        npm install -g "@cyclonedx/cdxgen@$CONF_CDXGEN_VERSION"
+
+    - name: Generate SBOM
+      shell: bash
+      env:
+        CONF_PROJECT_DIR: "${{ inputs.project_path }}"
+        CONF_ECOSYSTEMS: "${{ inputs.ecosystems }}"
+        CONF_RESULT_PATH: "${{ inputs.sbom_path }}"
+      run: |
+        "${GITHUB_ACTION_PATH}/scripts/generate-sbom.sh"
