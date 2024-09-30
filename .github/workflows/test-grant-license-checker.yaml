@@ -1,0 +1,44 @@
+name: Run tests against grant-license-checker
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - .github/workflows/test-grant-license-checker.yaml
+      - ./grant-license-checker/**
+  push:
+    branches: [ main ]
+    paths:
+      - .github/workflows/test-grant-license-checker.yaml
+      - ./grant-license-checker/**
+
+jobs:
+  main:
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ./grant-license-checker
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: ./grant-license-checker
+
+      - name: Setup Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
+        with:
+          # Note: make sure to update `poetry env use pythonX.Y` below.
+          python-version: '3.12'
+
+      - name: Install Python Dependencies
+        shell: bash
+        run: |
+          pip install poetry~=1.8.0
+          poetry env use python3.12
+          poetry install --with=dev
+          echo "$(poetry env info -p)"/bin >> "$GITHUB_PATH"
+
+      - name: pytest
+        run: |
+          pytest ./
