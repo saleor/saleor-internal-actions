@@ -71,7 +71,7 @@ jobs:
       # reusable workflows.
       - if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
         name: Generate SBOM
-        uses: saleor/saleor-internal-actions/sbom-generator@main
+        uses: saleor/saleor-internal-actions/sbom-generator@v1
         with:
           sbom_path: "./bom.json"
           ecosystems: ${{ inputs.ecosystems }}
@@ -155,7 +155,7 @@ jobs:
       - id: license-analyzer-workflow-call
         if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
         name: Analyze Licenses
-        uses: saleor/saleor-internal-actions/grant-license-checker@main
+        uses: saleor/saleor-internal-actions/grant-license-checker@v1
         with:
           rules: ${{ inputs.rules }}
           sbom_path: ./bom.json
