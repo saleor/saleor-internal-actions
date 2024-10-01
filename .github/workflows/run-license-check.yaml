@@ -1,0 +1,265 @@
+# This reusable workflow checks and summarizes licenses of the caller's repository.
+#
+# Works as follows:
+#
+# 1. It generates an SBOM using ./sbom-generator/action.yaml
+#    (cdxgen + fetches licenses from NPM, PyPI, etc.)
+# 2. It analyzes the SBOM using grant (./grant-license-checker/action.yaml)
+# 3. It sends the summary as a pull request comment
+#    (edits the comment if it already commented previously)
+name: Analyze Dependencies Licenses
+
+on:
+  workflow_call:
+    inputs:
+      rules:
+        type: string
+        default: |
+          - name: default-allow-all
+            reason: No configuration provided, defaulted to 'allow all.'
+            pattern: '*'
+            mode: allow
+        description: >-
+          A list of grant YAML rules (default: deny all GPL licenses).
+          More details at: https://github.com/anchore/grant/blob/v0.2.1/README.md#usage.
+      # The ecosystems to scan, scans all by default.
+      #
+      # See https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for the supported
+      # ecosystems ("Project Types" column).
+      ecosystems:
+        type: string
+        default: >-
+          python
+          javascript
+        description: >-
+          The ecosystem list to scan (space or newline separated).
+          Default: python and javascript.
+
+          See https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for the supported values.
+
+permissions:
+  contents: read
+
+jobs:
+  # 1. Generate an SBOM using cdxgen (CycloneDX generator),
+  #    and fetches licenses from PyPI, NPM, etc.
+  # 2. Outputs the SBOM JSON file as an artifact.
+  generate-sbom:
+    name: Generate SBOM and Fetch Licenses
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read
+
+    steps:
+      # Clone the invoker's repository.
+      - name: Checkout Caller's Code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      # When running inside the same repository as the action,
+      # use the action from the same branch.
+      # This allows us to test our workflows in pull requests.
+      - if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
+        name: Generate SBOM
+        uses: ./sbom-generator
+        with:
+          sbom_path: "./bom.json"
+          ecosystems: ${{ inputs.ecosystems }}
+
+      # When not running inside the same repository as the action,
+      # use the action version as we cannot access our files inside
+      # reusable workflows.
+      - if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
+        name: Generate SBOM
+        uses: saleor/saleor-internal-actions/sbom-generator@main
+        with:
+          sbom_path: "./bom.json"
+          ecosystems: ${{ inputs.ecosystems }}
+
+      # Send the results to the next job ('analyze-licenses').
+      - name: Upload Results
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: Generated SBOM with Licenses
+          path: ./bom.json
+
+  # 1. Takes an SBOM as input (artifact),
+  # 2. Analyzes it using grant and sends a summary as HTML (error if any
+  # rules are violated),
+  # 3. Outputs the HTML and JSON results as an artifact.
+  analyze-licenses:
+    name: Analyze Licenses
+    runs-on: ubuntu-22.04
+
+    needs:
+      - generate-sbom
+
+    permissions:
+      contents: read
+
+    steps:
+      # We cannot detect the GitHub repository, and git ref of
+      # the invoked workflow (this file) in pull requests due to not having access
+      # to id_token permission.
+      # Feature request: https://github.com/orgs/community/discussions/31054
+      #
+      # The code checkout is needed to be able to use the actions from the
+      # current branch of 'saleor-internal-actions'. We do not check the owner in order
+      # to allow forks to work as well.
+      #
+      # `github.repository` is `<owner>/<repo>`
+      - if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download SBOM
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: Generated SBOM with Licenses
+          path: .
+
+      # Prepends the dependency group to the dependency name
+      # (as: ".group" + "/" + ".name")
+      #
+      # This is needed due to a bug in Syft that leads 'grant' to not handle
+      # properly dependency groups (e.g., NPM's '@org/pkg-name').
+      #
+      # Example: the NPM package '@types/node' would be reported by 'grant' as
+      # having for name 'node' whereas 'node' and '@types/node` are two
+      # (totally) unrelated packages.
+      #
+      # Ticket: https://github.com/anchore/syft/issues/1202
+      - name: Prepend Dependency Group
+        run: |
+          test -n "${RUNNER_DEBUG+x}" || set -x
+          set -eu
+          
+          # When .group is not blank, preprend .group into .name (using a slash (/))
+          jq '
+            (
+              .components[] | select ( .group != "" )
+            ) |= (
+              . + { name: (.group + "/" + .name) }
+            )
+          ' bom.json > fixed.bom.json
+          
+          mv fixed.bom.json bom.json
+
+      - id: license-analyzer-self
+        if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
+        name: Analyze Licenses
+        uses: ./grant-license-checker
+        with:
+          rules: ${{ inputs.rules }}
+          sbom_path: ./bom.json
+
+      - id: license-analyzer-workflow-call
+        if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
+        name: Analyze Licenses
+        uses: saleor/saleor-internal-actions/grant-license-checker@main
+        with:
+          rules: ${{ inputs.rules }}
+          sbom_path: ./bom.json
+
+      - name: Upload Analysis Results
+        if: ${{ success() || ( failure() && steps.license-checker.conclusion == 'failure' ) }}
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: Grant Analysis Results
+          path: >-
+            ${{ 
+                steps.license-analyzer-self.outputs.results_dir_path 
+                || steps.license-analyzer-workflow-call.outputs.results_dir_path
+            }}
+
+  # 1. Takes a grant HTML result as input,
+  # 2. Send a GitHub pull request comment with the HTML contents.
+  report:
+    name: Report Summary
+    runs-on: ubuntu-22.04
+
+    needs:
+      - analyze-licenses
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    env:
+      HTML_FILE_PATH: ./results/grant.html
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      # There could be multiple comments with the author 'github-action[bot]',
+      # thus we need to look for an identifier that demonstrates we are
+      # updating the right bot comment.
+      COMMENT_SUFFIX: "<!-- generated by grant-license-checker -->"
+
+    steps:
+      - name: Download Analysis Results
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: Grant Analysis Results
+          path: ./results
+
+      - name: Validate HTML Report
+        shell: bash
+        run: |
+          test -n "${RUNNER_DEBUG+x}" || set -x
+
+          # Append into the file the comment suffix,
+          # but ensure it exists in order to prevent sending empty comments
+          # if there is a bug.
+          if [ -f "$HTML_FILE_PATH" ]; then
+              printf "%s\n" "$COMMENT_SUFFIX" >> "$HTML_FILE_PATH"
+          else
+              printf "Did not find find HTML result file: %s\n" "$HTML_FILE_PATH"
+              exit 1
+          fi
+          
+          # Validate length doesn't not exceed GitHub limits.
+          body_length=$(wc -m "$HTML_FILE_PATH" | cut -d' ' -f1)
+          if [ "$body_length" -gt 65536 ]; then
+            printf "Comment body is too long, aborting..." >&2
+            exit 1
+          fi
+
+      - name: Find Previous Comment
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
+        id: find-previous-comment
+        with:
+          issue-number: ${{ env.PR_NUMBER }}
+          comment-author: github-actions[bot]
+          body-includes: ${{ env.COMMENT_SUFFIX }}
+
+      - name: Post Summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OLD_COMMENT_ID: ${{ steps.find-previous-comment.outputs.comment-id }}
+        run: |
+          test -n "${RUNNER_DEBUG+x}" || set -x
+
+          endpoint="/repos/${GITHUB_REPOSITORY}/issues"
+          
+          cmd_args=()
+          
+          # Run 'gh api' comment silently if runner is not in debug mode.
+          test -n "${RUNNER_DEBUG+x}" || cmd_args+=( "--silent" )
+
+          if [ -z "$OLD_COMMENT_ID" ]; then
+              # Didn't find a comment, create one.
+              method=POST
+              endpoint="${endpoint}/${PR_NUMBER}/comments"
+          else
+              # Update the comment
+              method=PATCH
+              endpoint="${endpoint}/comments/${OLD_COMMENT_ID}"
+          fi
+          
+          printf "Creating or updating comment at %s (%s)\n" "$endpoint" "$method" >&2
+          
+          gh api \
+              --method "$method" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$endpoint" \
+              -F "body=@$HTML_FILE_PATH" \
+              "${cmd_args[@]}"
