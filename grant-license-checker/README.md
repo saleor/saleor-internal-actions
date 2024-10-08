@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Analyze Licenses
-        uses: saleor/saleor-internal-actions/grant-license-checker@v0
+        uses: saleor/saleor-internal-actions/grant-license-checker@v1
         with:
           # Needs to be a SBOM that contains license information (SPDX, CycloneDX,
           # and Syft formats are supported).
@@ -137,7 +137,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: saleor/saleor-internal-actions/.github/workflows/run-license-check.yaml@v0
+    uses: saleor/saleor-internal-actions/.github/workflows/run-license-check.yaml@v1
 ```
 
 ### CLI

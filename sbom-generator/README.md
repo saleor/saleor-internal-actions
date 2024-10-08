@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Analyze Licenses
-        uses: saleor/saleor-internal-actions/sbom-generator@v0
+        uses: saleor/saleor-internal-actions/sbom-generator@v1
         with:
           # Where to store the resulting SBOM file (default is ./sbom.json).
           sbom_path: ./sbom.json
