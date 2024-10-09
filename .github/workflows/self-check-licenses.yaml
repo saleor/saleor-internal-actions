@@ -9,6 +9,9 @@ on:
     paths:
       # Self
       - ".github/workflows/self-check-licenses.yaml"
+      - ".github/workflows/run-license-check.yaml"
+      - "grant-license-checker/**"
+      - "sbom-generator/**"
       # Python Ecosystem
       - "**/pyproject.toml"
       - "**/setup.py"

@@ -151,6 +151,7 @@ jobs:
         with:
           rules: ${{ inputs.rules }}
           sbom_path: ./bom.json
+          output_format: html
 
       - id: license-analyzer-workflow-call
         if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
@@ -159,6 +160,7 @@ jobs:
         with:
           rules: ${{ inputs.rules }}
           sbom_path: ./bom.json
+          output_format: html
 
       - name: Upload Analysis Results
         if: ${{ success() || ( failure() && steps.license-checker.conclusion == 'failure' ) }}
