@@ -11,7 +11,7 @@ inputs:
   rules:
     description: >-
       A list of grant YAML rules (default: deny all GPL licenses).
-      More details at: https://github.com/anchore/grant/blob/v0.2.1/README.md#usage.
+      More details at: https://github.com/anchore/grant/blob/v0.2.2/README.md#usage.
     default: |
       - pattern: "*gpl*"
         name: "default-deny-gpl"

@@ -14,21 +14,21 @@ function log() {
 # Add extra logging if the runner was run with debug logging.
 test -z "${RUNNER_DEBUG+x}" || set -x
 
-grant_version="${GRANT_VERSION:-0.2.1}"
+grant_version="${GRANT_VERSION:-0.2.2}"
 
 sha256sums='
-7c5d161b2c32db49a5518fd25ea2f07f15e0a11423e479a1b3f6eb5707137a53  grant_0.2.1_darwin_amd64.sbom
-e9da0ecadf819e0c11489b244fc92a9a1c918cb795c2dd605682881fd806821a  grant_0.2.1_darwin_amd64.tar.gz
-d636bb55c3ab7e6043209f9288cdb3f572ac597e49bb53422602b4b2ac670e28  grant_0.2.1_darwin_arm64.sbom
-bc5861697b97a4f23dfee496fb54db667de3b863311dee18bff836e9200d8608  grant_0.2.1_darwin_arm64.tar.gz
-299bcb89f3b0d8ff86c8713fee30fcb4449e021256a38802d8c1f7e06c7fd81c  grant_0.2.1_linux_amd64.deb
-9bef595e4b65bf9fd6c6c11af72c68f70f9a24c4c19b79a58fd99bb5f477456e  grant_0.2.1_linux_amd64.rpm
-f0404f192045074f9089a6be621a27c8eee50c3143a7a45f454485c756c1bbff  grant_0.2.1_linux_amd64.sbom
-2b1620ac640c9db8d376847b12835fba9ae75d85c9a36981305ff12859b55280  grant_0.2.1_linux_amd64.tar.gz
-9cd94d462c1607ef7f5b2a17f9451dd2ea358e995b44ca3ba35312edf725ade6  grant_0.2.1_linux_arm64.deb
-043184053aaab7e49fffe2ac2a5056c712e9ba8c45769f93bfa8bd2633176373  grant_0.2.1_linux_arm64.rpm
-d0aa2733b753eb671dd86529b11464a99a12cf2659864203a2a6cad21d2b1231  grant_0.2.1_linux_arm64.sbom
-c51b871fece7a00c896c6b6c94f824a72cebee503f3f1a87ebd4803508a765a1  grant_0.2.1_linux_arm64.tar.gz'
+cb5925f6a1d7a791261914f27ea300ab3e88fa18521c5fff1b88d573fa349092  grant_0.2.2_darwin_amd64.sbom
+9d65808b30107f46d4755e8840b756a2abbbc60110485cf44df1d5f76a1fe418  grant_0.2.2_darwin_amd64.tar.gz
+14d2e8fbe14f6699201822f1744056e6fce8dc6787eeeacebbd6c37b11c27bdb  grant_0.2.2_darwin_arm64.sbom
+a169e2bf5dd755b35d3a0d05f9228ef1c32706611a18c86730f162399536ad8d  grant_0.2.2_darwin_arm64.tar.gz
+5c2a2db8aeca438cda9fee3c1bd93c07f8cd923aae53c35b385f710525fbd083  grant_0.2.2_linux_amd64.deb
+e37fb1d23c23d567fd026fb245bd49e14ec57c3ed2fa62c51a167c1a96b34d33  grant_0.2.2_linux_amd64.rpm
+17f18dad481ca1f15c1baa7c2ad3d322b9a467b26af4d4c6fa3aef33a4b146d7  grant_0.2.2_linux_amd64.sbom
+5c61efc0cad3def981642386a8ad813fdc74ef5c6e42ded38ffe2c4df1bd9060  grant_0.2.2_linux_amd64.tar.gz
+2a39884630cf8d928947e21aca0a44b6ad0504337b349dc42d5378661875ec54  grant_0.2.2_linux_arm64.deb
+048bab95a2284fa2a8a124afe27ba64821641bf48c1cdf498068a86208feae74  grant_0.2.2_linux_arm64.rpm
+3e59bc00a54c6d99bec529e0fcc710d0b75edb8211ead0ff995b935be3fa433a  grant_0.2.2_linux_arm64.sbom
+2510d17bdc5a52e3a6332fd158c6a7b888f12f5e9f31b31d2222765b97330971  grant_0.2.2_linux_arm64.tar.gz'
 
 kernel=$(uname -s)
 arch=$(uname -m)
