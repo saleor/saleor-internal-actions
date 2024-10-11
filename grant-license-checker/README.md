@@ -89,6 +89,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Analyze Licenses
+        id: analyze-licenses
         uses: saleor/saleor-internal-actions/grant-license-checker@v1
         with:
           # Needs to be a SBOM that contains license information (SPDX, CycloneDX,
@@ -109,6 +110,16 @@ jobs:
               name: "default-deny-all"
               mode: "deny"
               reason: "All licenses need to be explicitly approved (allow-list)"
+
+      - name: Check Result
+        env:
+          CONCLUSION: ${{ steps.analyze-licenses.outputs.check_conclusion }}
+        run: |
+          if [ "$CONCLUSION" == fail ]; then
+            echo "Found license violations!" >&2
+            exit 1
+          fi
+          echo "License check passed!" >&2
 ```
 
 ### Reusable GitHub Workflow
