@@ -15,6 +15,6 @@ class TSVRenderer(BaseRenderer):
 
         # Note: truncation is not supported for TSV renderer, it's meant for
         #       machine analysis rather than for human friendly output.
-        for license_name, package_list in enumerate(package_list):
+        for license_name, package_list in package_list:
             for pkg in package_list:
                 writer.writerow((license_name, pkg.name))
