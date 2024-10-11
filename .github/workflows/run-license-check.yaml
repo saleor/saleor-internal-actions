@@ -36,142 +36,32 @@ on:
           Default: python and javascript.
 
           See https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for the supported values.
+      is_same_repository:
+        type: boolean
+        default: false
+        description: >-
+          Whether the workflow is being dispatched from the same GitHub repository
+          as the location of this workflow. False if it is another repository.
 
 permissions:
   contents: read
 
 jobs:
-  # 1. Generate an SBOM using cdxgen (CycloneDX generator),
-  #    and fetches licenses from PyPI, NPM, etc.
-  # 2. Outputs the SBOM JSON file as an artifact.
-  generate-sbom:
-    name: Generate SBOM and Fetch Licenses
-    runs-on: ubuntu-22.04
-
+  check-licenses-head-ref:
     permissions:
       contents: read
-
-    steps:
-      # Clone the invoker's repository.
-      - name: Checkout Caller's Code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      # When running inside the same repository as the action,
-      # use the action from the same branch.
-      # This allows us to test our workflows in pull requests.
-      - if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
-        name: Generate SBOM
-        uses: ./sbom-generator
-        with:
-          sbom_path: "./bom.json"
-          ecosystems: ${{ inputs.ecosystems }}
-
-      # When not running inside the same repository as the action,
-      # use the action version as we cannot access our files inside
-      # reusable workflows.
-      - if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
-        name: Generate SBOM
-        uses: saleor/saleor-internal-actions/sbom-generator@v1
-        with:
-          sbom_path: "./bom.json"
-          ecosystems: ${{ inputs.ecosystems }}
-
-      # Send the results to the next job ('analyze-licenses').
-      - name: Upload Results
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: Generated SBOM with Licenses
-          path: ./bom.json
-
-  # 1. Takes an SBOM as input (artifact),
-  # 2. Analyzes it using grant and sends a summary as HTML (error if any
-  # rules are violated),
-  # 3. Outputs the HTML and JSON results as an artifact.
-  analyze-licenses:
-    name: Analyze Licenses
-    runs-on: ubuntu-22.04
-
-    needs:
-      - generate-sbom
-
-    permissions:
-      contents: read
-
-    steps:
-      # We cannot detect the GitHub repository, and git ref of
-      # the invoked workflow (this file) in pull requests due to not having access
-      # to id_token permission.
-      # Feature request: https://github.com/orgs/community/discussions/31054
-      #
-      # The code checkout is needed to be able to use the actions from the
-      # current branch of 'saleor-internal-actions'. We do not check the owner in order
-      # to allow forks to work as well.
-      #
-      # `github.repository` is `<owner>/<repo>`
-      - if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Download SBOM
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: Generated SBOM with Licenses
-          path: .
-
-      # Prepends the dependency group to the dependency name
-      # (as: ".group" + "/" + ".name")
-      #
-      # This is needed due to a bug in Syft that leads 'grant' to not handle
-      # properly dependency groups (e.g., NPM's '@org/pkg-name').
-      #
-      # Example: the NPM package '@types/node' would be reported by 'grant' as
-      # having for name 'node' whereas 'node' and '@types/node` are two
-      # (totally) unrelated packages.
-      #
-      # Ticket: https://github.com/anchore/syft/issues/1202
-      - name: Prepend Dependency Group
-        run: |
-          test -n "${RUNNER_DEBUG+x}" || set -x
-          set -eu
-          
-          # When .group is not blank, preprend .group into .name (using a slash (/))
-          jq '
-            (
-              .components[] | select ( .group != "" )
-            ) |= (
-              . + { name: (.group + "/" + .name) }
-            )
-          ' bom.json > fixed.bom.json
-          
-          mv fixed.bom.json bom.json
-
-      - id: license-analyzer-self
-        if: ${{ endsWith(github.repository, '/saleor-internal-actions') }}
-        name: Analyze Licenses
-        uses: ./grant-license-checker
-        with:
-          rules: ${{ inputs.rules }}
-          sbom_path: ./bom.json
-          output_format: html
-
-      - id: license-analyzer-workflow-call
-        if: ${{ !endsWith(github.repository, '/saleor-internal-actions') }}
-        name: Analyze Licenses
-        uses: saleor/saleor-internal-actions/grant-license-checker@v1
-        with:
-          rules: ${{ inputs.rules }}
-          sbom_path: ./bom.json
-          output_format: html
-
-      - name: Upload Analysis Results
-        if: ${{ success() || ( failure() && steps.license-checker.conclusion == 'failure' ) }}
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: Grant Analysis Results
-          path: >-
-            ${{ 
-                steps.license-analyzer-self.outputs.results_dir_path 
-                || steps.license-analyzer-workflow-call.outputs.results_dir_path
-            }}
+      pull-requests: write
+    uses: ./.github/workflows/run-generate-sbom-and-check-licenses.yaml
+    with:
+      # Blank 'checkout_ref' to leave it up to 'actions/checkout' to use
+      # the correct ref from the pull_request event.
+      checkout_ref: "" 
+      rules: ${{ inputs.rules }}
+      ecosystems: ${{ inputs.ecosystems }}
+      output_format: html
+      output_summary_artifact_name: Grant Summary (HEAD)
+      output_sbom_artifact_name: SBOM (HEAD)
+      is_same_repository: ${{ inputs.is_same_repository }}
 
   # 1. Takes a grant HTML result as input,
   # 2. Send a GitHub pull request comment with the HTML contents.
@@ -180,7 +70,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     needs:
-      - analyze-licenses
+      - check-licenses-head-ref
 
     permissions:
       contents: read
@@ -198,7 +88,7 @@ jobs:
       - name: Download Analysis Results
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: Grant Analysis Results
+          name: Grant Summary (HEAD)
           path: ./results
 
       - name: Validate HTML Report

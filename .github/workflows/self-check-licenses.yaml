@@ -29,3 +29,6 @@ jobs:
       contents: read
       pull-requests: write
     uses: ./.github/workflows/run-license-check.yaml
+    with:
+      is_same_repository: true
+
