@@ -47,6 +47,11 @@ on:
           Whether the workflow is being dispatched from the same GitHub repository
           as the location of this workflow. False if it is another repository.
 
+    outputs:
+      check_conclusion:
+        description: "Whether the license check passed or failed. One of: pass, fail"
+        value: ${{ jobs.analyze-licenses.outputs.check_conclusion }}
+
 permissions:
   contents: read
 
@@ -106,6 +111,13 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      check_conclusion: >-
+        ${{
+          steps.license-analyzer-self.outputs.check_conclusion
+            || steps.license-analyzer-workflow-call.outputs.check_conclusion
+        }}
+
     steps:
       - if: ${{ inputs.is_same_repository }}
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -161,7 +173,6 @@ jobs:
           sbom_path: ./bom.json
 
       - name: Upload Analysis Results
-        if: ${{ success() || ( failure() && steps.license-checker.conclusion == 'failure' ) }}
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: ${{ inputs.output_summary_artifact_name }}

@@ -32,6 +32,9 @@ outputs:
   grant_result_path:
     description: "Where the results (HTML, TSV, ...) of grant-summarize are stored"
     value: ${{ steps.results-paths.outputs.grant_results_path }}
+  check_conclusion:
+    description: "Whether the license check passed or failed. One of: pass, fail"
+    value: ${{ steps.grant-check.outputs.check_conclusion }}
 runs:
   using: composite
   steps:
@@ -91,15 +94,17 @@ runs:
         # Enable trace and debug logging if the runner has debug mode enabled
         test -z "${RUNNER_DEBUG+x}" || cmd_args+=( "-vvv" )
         
+        # Always succeeds even if there are license violations.
+        # The caller must check 'check_conclusion' and decide how to handle it.
+        conclusion=pass
         ./.grant/grant check "$SBOM_PATH" \
           -o json \
           --show-packages \
           "--config=$GRANT_CONFIG_PATH" \
-          "${cmd_args[@]}" > "$RESULTS_PATH"
+          "${cmd_args[@]}" > "$RESULTS_PATH" || conclusion=fail
+        echo "check_conclusion=$conclusion" >> "$GITHUB_OUTPUT"
 
     - name: Generate Report
-      # Always generate the report, even if there are license violations
-      if: ${{ success() || ( failure() && steps.grant-check.conclusion == 'failure' ) }}
       shell: bash
       env:
         GRANT_INPUT_RESULTS_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
