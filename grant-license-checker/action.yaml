@@ -3,6 +3,11 @@ description: >-
   Generates a report of licenses used by main and transient dependencies,
   and checks for compliance issues.
 inputs:
+  output_format:
+    required: true
+    description: >-
+      The format to display the license summary. One of: TSV, HTML, TTY.
+      List of supported formats are available at: https://github.com/saleor/saleor-internal-actions/blob/2227d3fe93cefd12cbf807f361b39d9b89a5f0c5/grant-license-checker/grant_license_checker/renderers/__init__.py#L6-L10.
   sbom_path:
     required: true
     description: >-
@@ -24,9 +29,9 @@ outputs:
   grant_json_path:
     description: "Where the JSON results of grant are stored"
     value: ${{ steps.results-paths.outputs.grant_json_path }}
-  grant_html_path:
-    description: "Where the HTML results of grant are stored"
-    value: ${{ steps.results-paths.outputs.grant_html_path }}
+  grant_result_path:
+    description: "Where the results (HTML, TSV, ...) of grant-summarize are stored"
+    value: ${{ steps.results-paths.outputs.grant_results_path }}
 runs:
   using: composite
   steps:
@@ -53,13 +58,15 @@ runs:
     - name: Set-up Results Path
       id: results-paths
       shell: bash
+      env:
+        OUTPUT_FORMAT: ${{ inputs.output_format }}
       run: |
         results_dir=.grant/results
         mkdir -p "$results_dir"
         {
           echo "results_dir=$results_dir"
           echo "grant_json_path=$results_dir/grant.json"
-          echo "grant_html_path=$results_dir/grant.html"
+          echo "grant_results_path=$results_dir/grant.${OUTPUT_FORMAT}"
         } >> "$GITHUB_OUTPUT"
 
     - name: Configure Grant
@@ -98,11 +105,12 @@ runs:
       if: ${{ success() || ( failure() && steps.grant-check.conclusion == 'failure' ) }}
       shell: bash
       env:
-        RESULTS_JSON_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
-        RESULTS_HTML_PATH: ${{ steps.results-paths.outputs.grant_html_path }}
+        GRANT_INPUT_RESULTS_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
+        SUMMARIZE_OUTPUT_PATH: ${{ steps.results-paths.outputs.grant_results_path }}
+        OUTPUT_FORMAT: ${{ inputs.output_format }}
       run: |
         grant-summarize \
-          -i "$RESULTS_JSON_PATH" \
-          -f html \
-          -o "$RESULTS_HTML_PATH" \
+          -i "$GRANT_INPUT_RESULTS_PATH" \
+          -f "$OUTPUT_FORMAT" \
+          -o "$SUMMARIZE_OUTPUT_PATH" \
           --list-packages
