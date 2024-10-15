@@ -23,11 +23,12 @@ on:
         required: true
         description: >-
           The ecosystem list to scan (space or newline separated).
-      output_format:
+      output_formats:
         type: string
         required: true
         description: >-
-          The format to display the license summary. One of: TSV, HTML, TTY.
+          Whitespace separated list of formats for the license summary.
+          Valid values: TSV, HTML, TTY.
       output_summary_artifact_name:
         type: string
         required: true
@@ -149,7 +150,7 @@ jobs:
         with:
           rules: ${{ inputs.rules }}
           sbom_path: ./bom.json
-          output_format: ${{ inputs.output_format }}
+          output_formats: ${{ inputs.output_formats }}
 
       - id: license-analyzer-workflow-call
         if: ${{ !inputs.is_same_repository }}

@@ -3,11 +3,11 @@ description: >-
   Generates a report of licenses used by main and transient dependencies,
   and checks for compliance issues.
 inputs:
-  output_format:
+  output_formats:
     required: true
     description: >-
-      The format to display the license summary. One of: TSV, HTML, TTY.
-      List of supported formats are available at: https://github.com/saleor/saleor-internal-actions/blob/2227d3fe93cefd12cbf807f361b39d9b89a5f0c5/grant-license-checker/grant_license_checker/renderers/__init__.py#L6-L10.
+      Whitespace separated list of formats for the license summary.
+      Valid values: TSV, HTML, TTY.
   sbom_path:
     required: true
     description: >-
@@ -58,15 +58,12 @@ runs:
     - name: Set-up Results Path
       id: results-paths
       shell: bash
-      env:
-        OUTPUT_FORMAT: ${{ inputs.output_format }}
       run: |
         results_dir=.grant/results
         mkdir -p "$results_dir"
         {
           echo "results_dir=$results_dir"
           echo "grant_json_path=$results_dir/grant.json"
-          echo "grant_results_path=$results_dir/grant.${OUTPUT_FORMAT}"
         } >> "$GITHUB_OUTPUT"
 
     - name: Configure Grant
@@ -106,11 +103,15 @@ runs:
       shell: bash
       env:
         GRANT_INPUT_RESULTS_PATH: ${{ steps.results-paths.outputs.grant_json_path }}
-        SUMMARIZE_OUTPUT_PATH: ${{ steps.results-paths.outputs.grant_results_path }}
-        OUTPUT_FORMAT: ${{ inputs.output_format }}
+        SUMMARIZE_OUTPUT_DIR: ${{ steps.results-paths.outputs.results_dir }}
+        OUTPUT_FORMATS: ${{ inputs.output_formats }}
       run: |
-        grant-summarize \
-          -i "$GRANT_INPUT_RESULTS_PATH" \
-          -f "$OUTPUT_FORMAT" \
-          -o "$SUMMARIZE_OUTPUT_PATH" \
-          --list-packages
+        for format in $OUTPUT_FORMATS; do
+          output_path="${SUMMARIZE_OUTPUT_DIR}/summary.${format}"
+          printf "Generating '%s' summary to '%s'\n" "$format" "$output_path" >&2
+          grant-summarize \
+            -i "$GRANT_INPUT_RESULTS_PATH" \
+            -f "$format" \
+            -o "$output_path" \
+            --list-packages
+        done
