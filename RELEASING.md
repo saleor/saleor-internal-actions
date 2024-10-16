@@ -1,4 +1,4 @@
-## Releasing
+# Releasing
 
 > [!NOTE]
 > This repository follows the [Semantic Versioning].
@@ -12,7 +12,7 @@ To create a new release:
 
   ```
   git fetch --tags
-  git checkout 1.0.1 # Use the version that you want to release
+  git checkout v1.0.1 # Use the version that you want to release
   git tag --force v1
   git push origin --force refs/tags/v1
   ```
