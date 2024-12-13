@@ -169,12 +169,12 @@ jobs:
 
 When a pull request originates from a fork, the workflow will always fail with this message:
 
-<center><img alt="Screenshot showing an errored execution of a GitHub Workflow run" src="./_docs/assets/external_contribution_workflow_logs.jpg" width="700"/></center>
+<div align=center><img alt="Screenshot showing an errored execution of a GitHub Workflow run" src="./_docs/assets/external_contribution_workflow_logs.jpg" width="700"/></div>
 
 1. Click the link in the error message
 2. Review the summary (where the link sent you at), e.g.:
 
-   <center><img alt="Screenshot showing a summary of licenses found in a PR" src="./_docs/assets/external_contribution_workflow_summary.jpg" width="700"/></center>
+   <div align=center><img alt="Screenshot showing a summary of licenses found in a PR" src="./_docs/assets/external_contribution_workflow_summary.jpg" width="700"/></div>
     
 3. If the changes look good to you, then add the label "Licenses Reviewed" to the pull request (case-sensitive, create the label if it doesn't exist)
 4. Once labeled, the workflow will rerun and will succeed.
