@@ -9,6 +9,12 @@
 #    (edits the comment if it already commented previously)
 name: Analyze Dependencies Licenses
 
+concurrency:
+  # Limit concurrency, it may cause race-conditions otherwise
+  # due to GitHub sending two events concurrently: opened, labeled.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
 on:
   workflow_call:
     inputs:
