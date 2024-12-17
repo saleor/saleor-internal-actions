@@ -141,7 +141,7 @@ jobs:
       # Ticket: https://github.com/anchore/syft/issues/1202
       - name: Prepend Dependency Group
         run: |
-          test -n "${RUNNER_DEBUG+x}" || set -x
+          test -z "${RUNNER_DEBUG+x}" || set -x
           set -eu
           
           # When .group is not blank, preprend .group into .name (using a slash (/))

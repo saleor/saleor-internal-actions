@@ -187,7 +187,7 @@ jobs:
       - name: Validate HTML Report
         shell: bash
         run: |
-          test -n "${RUNNER_DEBUG+x}" || set -x
+          test -z "${RUNNER_DEBUG+x}" || set -x
 
           # Append into the file the comment suffix,
           # but ensure it exists in order to prevent sending empty comments
@@ -228,7 +228,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           OLD_COMMENT_ID: ${{ steps.find-previous-comment.outputs.comment-id }}
         run: |
-          test -n "${RUNNER_DEBUG+x}" || set -x
+          test -z "${RUNNER_DEBUG+x}" || set -x
 
           endpoint="/repos/${GITHUB_REPOSITORY}/issues"
           
