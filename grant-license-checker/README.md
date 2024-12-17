@@ -3,6 +3,18 @@
 An action that generates a report of licenses used by main and transient dependencies,
 and checks for compliance issues using [grant](https://github.com/anchore/grant).
 
+<!-- TOC -->
+* [grant-license-checker](#grant-license-checker)
+  * [Example Output](#example-output)
+  * [Usage](#usage)
+    * [GitHub Action](#github-action)
+    * [Reusable GitHub Workflow](#reusable-github-workflow)
+      * [Note: Behavior for External Contributions](#note-behavior-for-external-contributions)
+    * [CLI](#cli)
+  * [Development](#development)
+    * [Project Structure](#project-structure)
+<!-- TOC -->
+
 ## Example Output
 
 <table>
@@ -131,6 +143,8 @@ on:
     types:
       - opened
       - synchronize
+      - labeled
+      - unlabeled
     paths:
       # Python Ecosystem
       - "**/pyproject.toml"
@@ -150,6 +164,22 @@ jobs:
       pull-requests: write
     uses: saleor/saleor-internal-actions/.github/workflows/run-license-check.yaml@v1
 ```
+
+#### Note: Behavior for External Contributions
+
+When a pull request originates from a fork, the workflow will always fail with this message:
+
+<div align=center><img alt="Screenshot showing an errored execution of a GitHub Workflow run" src="./_docs/assets/external_contribution_workflow_logs.jpg" width="700"/></div>
+
+1. Click the link in the error message
+2. Review the summary (where the link sent you at), e.g.:
+
+   <div align=center><img alt="Screenshot showing a summary of licenses found in a PR" src="./_docs/assets/external_contribution_workflow_summary.jpg" width="700"/></div>
+    
+3. If the changes look good to you, then add the label "Licenses Reviewed" to the pull request (case-sensitive, create the label if it doesn't exist)
+4. Once labeled, the workflow will rerun and will succeed.
+
+Note: this behavior is done in order to not grant any write permission to external contributors.
 
 ### CLI
 

@@ -6,6 +6,8 @@ on:
     types:
       - opened
       - synchronize
+      - labeled
+      - unlabeled
     paths:
       # Self
       - ".github/workflows/self-check-licenses.yaml"

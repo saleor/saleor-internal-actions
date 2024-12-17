@@ -9,6 +9,12 @@
 #    (edits the comment if it already commented previously)
 name: Analyze Dependencies Licenses
 
+concurrency:
+  # Limit concurrency, it may cause race-conditions otherwise
+  # due to GitHub sending two events concurrently: opened, labeled.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
 on:
   workflow_call:
     inputs:
@@ -200,7 +206,12 @@ jobs:
             exit 1
           fi
 
-      - name: Find Previous Comment
+      - name: Add Check Summary
+        run: |
+          cat "$HTML_FILE_PATH" > "$GITHUB_STEP_SUMMARY"
+
+      - if: ${{ ! github.event.pull_request.head.repo.fork }}
+        name: Find Previous Comment
         uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
         id: find-previous-comment
         with:
@@ -208,7 +219,10 @@ jobs:
           comment-author: github-actions[bot]
           body-includes: ${{ env.COMMENT_SUFFIX }}
 
-      - name: Post Summary
+      # Only post PR comment when it's not a PR originating from a fork.
+      # Otherwise, it will fail due to not having the `pull_request: write` permission.
+      - if: ${{ ! github.event.pull_request.head.repo.fork }}
+        name: Post Summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -251,4 +265,13 @@ jobs:
         run: |
           echo "HEAD license check failed. Make sure the pull request is compliant with:" >&2
           printf "%s\n" "$RULES" >&2
+          exit 1
+
+      - if: ${{ github.event.pull_request.head.repo.fork && !contains(github.event.pull_request.labels.*.name, 'Licenses Reviewed') }}
+        name: Fail on External Contributions
+        env:
+          GH_RUN_URL: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}/attempts/${{github.run_attempt}}"
+        run: |
+          echo "Maintainers: review the license summary at: $GH_RUN_URL" >&2
+          echo "If it looks good, add the label 'Licenses Reviewed' to make this step succeed." >&2
           exit 1
