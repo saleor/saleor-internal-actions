@@ -3,3 +3,5 @@
 .grant/
 bom.json
 sbom.json
+
+__pycache__/

@@ -1,19 +1,19 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:59cc99ea-48e4-448b-8c90-4a06412e2394",
+  "serialNumber": "urn:uuid:baf551a9-6598-4759-90b5-d6c95e072919",
   "version": 1,
   "metadata": {
-    "timestamp": "2024-09-13T10:05:25Z",
+    "timestamp": "2025-08-27T12:38:26Z",
     "tools": {
       "components": [
         {
           "group": "@cyclonedx",
           "name": "cdxgen",
-          "version": "10.9.5",
-          "purl": "pkg:npm/%40cyclonedx/cdxgen@10.9.5",
+          "version": "11.6.0",
+          "purl": "pkg:npm/%40cyclonedx/cdxgen@11.6.0",
           "type": "application",
-          "bom-ref": "pkg:npm/@cyclonedx/cdxgen@10.9.5",
+          "bom-ref": "pkg:npm/@cyclonedx/cdxgen@11.6.0",
           "author": "OWASP Foundation",
           "publisher": "OWASP Foundation"
         }
@@ -37,12 +37,23 @@
       "type": "application",
       "bom-ref": "pkg:pypi/example-project@0.1.0",
       "purl": "pkg:pypi/example-project@0.1.0",
-      "components": []
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause",
+            "url": "https://opensource.org/licenses/BSD-3-Clause"
+          }
+        }
+      ]
     },
     "properties": [
       {
         "name": "cdx:bom:componentTypes",
         "value": "pypi"
+      },
+      {
+        "name": "cdx:bom:componentSrcFiles",
+        "value": "pyproject.toml"
       }
     ]
   },
@@ -51,14 +62,8 @@
       "author": "Django Software Foundation <foundation@djangoproject.com>",
       "group": "",
       "name": "asgiref",
-      "version": "3.8.1",
+      "version": "3.9.1",
       "description": "ASGI specs, helper code, and adapters",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "3e1e3ecc849832fe52ccf2cb6686b7a55f82bb1d6aee72a58826471390335e47"
-        }
-      ],
       "licenses": [
         {
           "license": {
@@ -73,7 +78,7 @@
           }
         }
       ],
-      "purl": "pkg:pypi/asgiref@3.8.1",
+      "purl": "pkg:pypi/asgiref@3.9.1",
       "externalReferences": [
         {
           "type": "vcs",
@@ -81,7 +86,17 @@
         }
       ],
       "type": "library",
-      "bom-ref": "pkg:pypi/asgiref@3.8.1",
+      "bom-ref": "pkg:pypi/asgiref@3.9.1",
+      "properties": [
+        {
+          "name": "SrcFile",
+          "value": "pyproject.toml"
+        },
+        {
+          "name": "cdx:pypi:requiresPython",
+          "value": ">=3.9"
+        }
+      ],
       "evidence": {
         "identity": {
           "field": "purl",
@@ -100,14 +115,8 @@
       "author": "Django Software Foundation <foundation@djangoproject.com>",
       "group": "",
       "name": "Django",
-      "version": "5.1.1",
+      "version": "5.2.5",
       "description": "A high-level Python web framework that encourages rapid development and clean, pragmatic design.",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "71603f27dac22a6533fb38d83072eea9ddb4017fead6f67f2562a40402d61c3f"
-        }
-      ],
       "licenses": [
         {
           "license": {
@@ -122,9 +131,19 @@
           }
         }
       ],
-      "purl": "pkg:pypi/django@5.1.1",
+      "purl": "pkg:pypi/django@5.2.5",
       "type": "framework",
-      "bom-ref": "pkg:pypi/django@5.1.1",
+      "bom-ref": "pkg:pypi/django@5.2.5",
+      "properties": [
+        {
+          "name": "SrcFile",
+          "value": "pyproject.toml"
+        },
+        {
+          "name": "cdx:pypi:requiresPython",
+          "value": ">=3.10"
+        }
+      ],
       "evidence": {
         "identity": {
           "field": "purl",
@@ -143,14 +162,8 @@
       "author": "Andi Albrecht <albrecht.andi@gmail.com>",
       "group": "",
       "name": "sqlparse",
-      "version": "0.5.1",
+      "version": "0.5.3",
       "description": "A non-validating SQL parser.",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "773dcbf9a5ab44a090f3441e2180efe2560220203dc2f8c0b0fa141e18b505e4"
-        }
-      ],
       "licenses": [
         {
           "license": {
@@ -159,9 +172,19 @@
           }
         }
       ],
-      "purl": "pkg:pypi/sqlparse@0.5.1",
+      "purl": "pkg:pypi/sqlparse@0.5.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/sqlparse@0.5.1",
+      "bom-ref": "pkg:pypi/sqlparse@0.5.3",
+      "properties": [
+        {
+          "name": "SrcFile",
+          "value": "pyproject.toml"
+        },
+        {
+          "name": "cdx:pypi:requiresPython",
+          "value": ">=3.8"
+        }
+      ],
       "evidence": {
         "identity": {
           "field": "purl",
@@ -180,14 +203,8 @@
       "author": "Python Software Foundation <datetime-sig@python.org>",
       "group": "",
       "name": "tzdata",
-      "version": "2024.1",
+      "version": "2025.2",
       "description": "Provider of IANA time zone data",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "9068bc196136463f5245e51efda838afa15aaeca9903f49050dfa2679db4d252"
-        }
-      ],
       "licenses": [
         {
           "license": {
@@ -196,7 +213,7 @@
           }
         }
       ],
-      "purl": "pkg:pypi/tzdata@2024.1",
+      "purl": "pkg:pypi/tzdata@2025.2",
       "externalReferences": [
         {
           "type": "vcs",
@@ -204,7 +221,17 @@
         }
       ],
       "type": "library",
-      "bom-ref": "pkg:pypi/tzdata@2024.1",
+      "bom-ref": "pkg:pypi/tzdata@2025.2",
+      "properties": [
+        {
+          "name": "SrcFile",
+          "value": "pyproject.toml"
+        },
+        {
+          "name": "cdx:pypi:requiresPython",
+          "value": ">=2"
+        }
+      ],
       "evidence": {
         "identity": {
           "field": "purl",
@@ -225,30 +252,27 @@
     {
       "ref": "pkg:pypi/example-project@0.1.0",
       "dependsOn": [
-        "pkg:pypi/asgiref@3.8.1",
-        "pkg:pypi/django@5.1.1",
-        "pkg:pypi/sqlparse@0.5.1",
-        "pkg:pypi/tzdata@2024.1"
+        "pkg:pypi/django@5.2.5"
       ]
     },
     {
-      "ref": "pkg:pypi/asgiref@3.8.1",
+      "ref": "pkg:pypi/asgiref@3.9.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:pypi/django@5.1.1",
+      "ref": "pkg:pypi/django@5.2.5",
       "dependsOn": [
-        "pkg:pypi/asgiref@3.8.1",
-        "pkg:pypi/sqlparse@0.5.1",
-        "pkg:pypi/tzdata@2024.1"
+        "pkg:pypi/asgiref@3.9.1",
+        "pkg:pypi/sqlparse@0.5.3",
+        "pkg:pypi/tzdata@2025.2"
       ]
     },
     {
-      "ref": "pkg:pypi/sqlparse@0.5.1",
+      "ref": "pkg:pypi/sqlparse@0.5.3",
       "dependsOn": []
     },
     {
-      "ref": "pkg:pypi/tzdata@2024.1",
+      "ref": "pkg:pypi/tzdata@2025.2",
       "dependsOn": []
     }
   ]

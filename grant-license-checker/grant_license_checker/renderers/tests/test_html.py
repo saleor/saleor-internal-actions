@@ -26,19 +26,15 @@ def test_get_html_summary_without_package_list(grant_json_report):
         <th>Package Count</th>
     </tr>
     <tr>
-        <td>&lt;&lt;missing&gt;&gt;</td>
-        <td>1</td>
-    </tr>
-    <tr>
         <td>Apache-2.0</td>
         <td>1</td>
     </tr>
     <tr>
-        <td>BSD-3-Clause</td>
-        <td>2</td>
+        <td>0BSD</td>
+        <td>3</td>
     </tr>
     <tr>
-        <td>0BSD</td>
+        <td>BSD-3-Clause</td>
         <td>3</td>
     </tr>
 </table>"""
@@ -61,18 +57,6 @@ def test_get_html_summary_with_package_list(grant_json_report):
         <th>Package Count</th>
 <th>Packages</th>    </tr>
     <tr>
-        <td>&lt;&lt;missing&gt;&gt;</td>
-        <td>1</td>
-            <td>
-                <details>
-                    <summary>Packages</summary>
-                    <ul>
-                        <li>example-project</li>
-                    </ul>
-                </details>
-            </td>
-    </tr>
-    <tr>
         <td>Apache-2.0</td>
         <td>1</td>
             <td>
@@ -85,20 +69,25 @@ def test_get_html_summary_with_package_list(grant_json_report):
             </td>
     </tr>
     <tr>
-        <td>BSD-3-Clause</td>
-        <td>2</td>
+        <td>0BSD</td>
+        <td>3</td>
             <td>
                 <details>
                     <summary>Packages</summary>
                     <ul>
                         <li>asgiref</li>
                         <li>Django</li>
+                            <li>
+                                <i>
+                                    And 1 more...
+                                </i>
+                            </li>
                     </ul>
                 </details>
             </td>
     </tr>
     <tr>
-        <td>0BSD</td>
+        <td>BSD-3-Clause</td>
         <td>3</td>
             <td>
                 <details>
