@@ -2,7 +2,6 @@
 
 Generates the [CycloneDX] SBOM of a given project, and fetches dependencies licenses using [`cdxgen`].
 
-
 ## Usage
 
 ### GitHub Action
@@ -20,6 +19,7 @@ on:
       - "**/requirements*.txt"
       - "**/Pipfile.lock"
       - "**/poetry.lock"
+      - "**/uv.lock"
       # JS/TS Ecosystem
       - "**/package.json"
       - "**/pnpm-lock.yaml"
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Analyze Licenses
         uses: saleor/saleor-internal-actions/sbom-generator@v1
