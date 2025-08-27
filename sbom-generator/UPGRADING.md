@@ -4,6 +4,7 @@
    then search & replace that version number.
 2. Test the ability to generate SBOM correctly using the following (replace the cdxgen version):
    ```
+   $ apt install -y nodejs npm jq curl git
    $ ./scripts/test-cdxgen-support.sh --cdxgen-version v11.6.0
    ```
 3. Run the following in the root directory of this project:

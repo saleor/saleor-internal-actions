@@ -12,7 +12,7 @@ function log() {
 }
 
 sample_project_dir="$HERE"/sample-project
-cyclonedx_spec_version='1.5'
+cyclonedx_spec_version='1.6'
 
 # If the sample project exists, delete it.
 if [ -d "$sample_project_dir" ]; then

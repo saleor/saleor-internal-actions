@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "serialNumber": "urn:uuid:baf551a9-6598-4759-90b5-d6c95e072919",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:f676013c-55b5-47db-965e-3c5777295d6b",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-08-27T12:38:26Z",
+    "timestamp": "2025-08-27T13:41:51Z",
     "tools": {
       "components": [
         {
@@ -14,8 +14,12 @@
           "purl": "pkg:npm/%40cyclonedx/cdxgen@11.6.0",
           "type": "application",
           "bom-ref": "pkg:npm/@cyclonedx/cdxgen@11.6.0",
-          "author": "OWASP Foundation",
-          "publisher": "OWASP Foundation"
+          "publisher": "OWASP Foundation",
+          "authors": [
+            {
+              "name": "OWASP Foundation"
+            }
+          ]
         }
       ]
     },
@@ -53,13 +57,17 @@
       },
       {
         "name": "cdx:bom:componentSrcFiles",
-        "value": "pyproject.toml"
+        "value": "poetry.lock\\npyproject.toml"
       }
     ]
   },
   "components": [
     {
-      "author": "Django Software Foundation <foundation@djangoproject.com>",
+      "authors": [
+        {
+          "name": "Django Software Foundation <foundation@djangoproject.com>"
+        }
+      ],
       "group": "",
       "name": "asgiref",
       "version": "3.9.1",
@@ -98,21 +106,28 @@
         }
       ],
       "evidence": {
-        "identity": {
-          "field": "purl",
-          "confidence": 1,
-          "methods": [
-            {
-              "technique": "manifest-analysis",
-              "confidence": 1,
-              "value": "/app/poetry.lock"
-            }
-          ]
-        }
+        "identity": [
+          {
+            "field": "purl",
+            "confidence": 1,
+            "methods": [
+              {
+                "technique": "manifest-analysis",
+                "confidence": 1,
+                "value": "poetry.lock"
+              }
+            ],
+            "concludedValue": "poetry.lock"
+          }
+        ]
       }
     },
     {
-      "author": "Django Software Foundation <foundation@djangoproject.com>",
+      "authors": [
+        {
+          "name": "Django Software Foundation <foundation@djangoproject.com>"
+        }
+      ],
       "group": "",
       "name": "Django",
       "version": "5.2.5",
@@ -145,21 +160,32 @@
         }
       ],
       "evidence": {
-        "identity": {
-          "field": "purl",
-          "confidence": 1,
-          "methods": [
-            {
-              "technique": "manifest-analysis",
-              "confidence": 1,
-              "value": "/app/poetry.lock"
-            }
-          ]
-        }
-      }
+        "identity": [
+          {
+            "field": "purl",
+            "confidence": 1,
+            "methods": [
+              {
+                "technique": "manifest-analysis",
+                "confidence": 1,
+                "value": "poetry.lock"
+              }
+            ],
+            "concludedValue": "poetry.lock"
+          }
+        ]
+      },
+      "tags": [
+        "framework",
+        "web"
+      ]
     },
     {
-      "author": "Andi Albrecht <albrecht.andi@gmail.com>",
+      "authors": [
+        {
+          "name": "Andi Albrecht <albrecht.andi@gmail.com>"
+        }
+      ],
       "group": "",
       "name": "sqlparse",
       "version": "0.5.3",
@@ -186,21 +212,31 @@
         }
       ],
       "evidence": {
-        "identity": {
-          "field": "purl",
-          "confidence": 1,
-          "methods": [
-            {
-              "technique": "manifest-analysis",
-              "confidence": 1,
-              "value": "/app/poetry.lock"
-            }
-          ]
-        }
-      }
+        "identity": [
+          {
+            "field": "purl",
+            "confidence": 1,
+            "methods": [
+              {
+                "technique": "manifest-analysis",
+                "confidence": 1,
+                "value": "poetry.lock"
+              }
+            ],
+            "concludedValue": "poetry.lock"
+          }
+        ]
+      },
+      "tags": [
+        "sql"
+      ]
     },
     {
-      "author": "Python Software Foundation <datetime-sig@python.org>",
+      "authors": [
+        {
+          "name": "Python Software Foundation <datetime-sig@python.org>"
+        }
+      ],
       "group": "",
       "name": "tzdata",
       "version": "2025.2",
@@ -233,17 +269,20 @@
         }
       ],
       "evidence": {
-        "identity": {
-          "field": "purl",
-          "confidence": 1,
-          "methods": [
-            {
-              "technique": "manifest-analysis",
-              "confidence": 1,
-              "value": "/app/poetry.lock"
-            }
-          ]
-        }
+        "identity": [
+          {
+            "field": "purl",
+            "confidence": 1,
+            "methods": [
+              {
+                "technique": "manifest-analysis",
+                "confidence": 1,
+                "value": "poetry.lock"
+              }
+            ],
+            "concludedValue": "poetry.lock"
+          }
+        ]
       }
     }
   ],
@@ -274,6 +313,32 @@
     {
       "ref": "pkg:pypi/tzdata@2025.2",
       "dependsOn": []
+    }
+  ],
+  "annotations": [
+    {
+      "bom-ref": "metadata-annotations",
+      "subjects": [
+        "pkg:pypi/example-project@0.1.0"
+      ],
+      "annotator": {
+        "component": {
+          "group": "@cyclonedx",
+          "name": "cdxgen",
+          "version": "11.6.0",
+          "purl": "pkg:npm/%40cyclonedx/cdxgen@11.6.0",
+          "type": "application",
+          "bom-ref": "pkg:npm/@cyclonedx/cdxgen@11.6.0",
+          "publisher": "OWASP Foundation",
+          "authors": [
+            {
+              "name": "OWASP Foundation"
+            }
+          ]
+        }
+      },
+      "timestamp": "2025-08-27T13:41:51Z",
+      "text": "This Software Bill-of-Materials (SBOM) document was created on Wednesday, August 27, 2025 with cdxgen. The data was captured during the build lifecycle phase. The document describes an application named 'example-project' with version '0.1.0'. There are 4 components."
     }
   ]
 }

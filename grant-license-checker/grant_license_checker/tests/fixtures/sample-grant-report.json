@@ -1,12 +1,12 @@
 {
   "report_id": "",
-  "timestamp": "2025-08-27T14:38:27+02:00",
+  "timestamp": "2025-08-27T15:41:52+02:00",
   "inputs": [
-    "../sample-sbom-v1.5.json"
+    "../sample-sbom-v1.6.json"
   ],
   "results": [
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -32,7 +32,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "BSD-3-Clause",
         "name": "BSD 3-Clause \"New\" or \"Revised\" License",
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "BSD-3-Clause",
         "name": "BSD 3-Clause \"New\" or \"Revised\" License",
@@ -110,7 +110,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -136,7 +136,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "Apache-2.0",
         "name": "Apache License 2.0",
@@ -162,7 +162,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "BSD-3-Clause",
         "name": "BSD 3-Clause \"New\" or \"Revised\" License",

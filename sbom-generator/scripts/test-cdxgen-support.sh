@@ -3,6 +3,9 @@
 set -eu -o pipefail
 
 SELF_FILENAME=$(basename "$0")
+HERE=$(dirname "$(readlink -f "$0")")
+
+cd "$HERE"
 
 # Options (populated via parse_opts())
 cdxgen_version=
@@ -29,7 +32,8 @@ tempdir=$(mktemp -d)
 
 cleanup() {
   # NOTE: -f is needed to delete .git/ folders
-  rm -Rf "$tempdir"
+  # rm -Rf "$tempdir"
+  :
 }
 
 trap cleanup EXIT
@@ -85,12 +89,9 @@ parse_opts() {
 # run_cdxgen(project_path)
 run_cdxgen() {
   local project_path="$1"
-  docker run \
-    --rm \
-    -v "$project_path:/app:rw" \
-    --env FETCH_LICENSE=true \
-    -t ghcr.io/cyclonedx/cdxgen:"$cdxgen_version" \
-    -r /app -o /app/bom.json --profile license-compliance -t javascript -t python
+  CONF_PROJECT_DIR="$project_path" \
+    CONF_ECOSYSTEMS='javascript python' \
+    CONF_RESULT_PATH="$project_path"/bom.json ./generate-sbom.sh
 }
 
 test_saleor_core() {
@@ -146,7 +147,13 @@ test_saleor_apps() {
 main() {
   parse_opts "$@"
 
+  npm install -g "@cyclonedx/cdxgen@$cdxgen_version"
+
+  # Tests a project that uses both NPM & 'uv' (Python)
   test_saleor_core
+
+  # Tests a mono-repo project which has thousands of dependencies
+  # (ensures mono-repo works, and doesn't lead to OOM kills)
   test_saleor_apps
 }
 
