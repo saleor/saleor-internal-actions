@@ -85,7 +85,7 @@ jobs:
       # reusable workflows.
       - if: ${{ !inputs.is_same_repository }}
         name: Generate SBOM
-        uses: saleor/saleor-internal-actions/sbom-generator@v1.2.0
+        uses: saleor/saleor-internal-actions/sbom-generator@feat/python/add-support-uv
         with:
           sbom_path: "./bom.json"
           ecosystems: ${{ inputs.ecosystems }}
@@ -143,7 +143,7 @@ jobs:
         run: |
           test -z "${RUNNER_DEBUG+x}" || set -x
           set -eu
-          
+
           # When .group is not blank, preprend .group into .name (using a slash (/))
           jq '
             (
@@ -152,7 +152,7 @@ jobs:
               . + { name: (.group + "/" + .name) }
             )
           ' bom.json > fixed.bom.json
-          
+
           mv fixed.bom.json bom.json
 
       - id: license-analyzer-self
@@ -167,7 +167,7 @@ jobs:
       - id: license-analyzer-workflow-call
         if: ${{ !inputs.is_same_repository }}
         name: Analyze Licenses
-        uses: saleor/saleor-internal-actions/grant-license-checker@v1.2.0
+        uses: saleor/saleor-internal-actions/grant-license-checker@feat/python/add-support-uv
         with:
           rules: ${{ inputs.rules }}
           sbom_path: ./bom.json

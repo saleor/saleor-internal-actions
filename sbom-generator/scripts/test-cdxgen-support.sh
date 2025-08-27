@@ -41,7 +41,7 @@ peek_next_opt_or_fail() {
   if [[ "${2-}" == "" ]]; then
     error "Invalid usage: missing argument for $1"
     usage
-    exit "$EXIT_INVALID_USAGE"
+    exit 1
   fi
 }
 
