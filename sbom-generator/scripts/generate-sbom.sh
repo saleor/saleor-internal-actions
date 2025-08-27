@@ -30,6 +30,7 @@ cmd_args=(
     "--recurse"
     "--output=$CONF_RESULT_PATH"
     "--profile=license-compliance"
+    "--spec-version=1.5" # grant-summarize only supports 1.5 currently
     # Path to the source code to analyze
     "$CONF_PROJECT_DIR"
 )
