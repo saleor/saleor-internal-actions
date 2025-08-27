@@ -27,7 +27,7 @@ def test_get_packages_grouped_by_license(grant_json_report):
             [
                 GrantPackage(name="asgiref", type="python"),
                 GrantPackage(name="Django", type="python"),
-                GrantPackage(name='example-project', type='python'),
+                GrantPackage(name="example-project", type="python"),
             ],
         ),
     ]

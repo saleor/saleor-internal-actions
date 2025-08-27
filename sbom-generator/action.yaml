@@ -3,7 +3,7 @@ description: >-
   Generates a CycloneDX SBOM with license fetching enabled.
 inputs:
   cdxgen_version:
-    default: "10.9.5"
+    default: "11.6.0"
     description: >-
       The cdxgen version to use to generate the CycloneDX SBOM.
       List of available versions: https://github.com/CycloneDX/cdxgen/releases.

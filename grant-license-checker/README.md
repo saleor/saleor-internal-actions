@@ -220,7 +220,7 @@ End to end example:
      --rm \
      -v "$(pwd):/app:rw" \
      --env FETCH_LICENSE=true \
-     -t ghcr.io/cyclonedx/cdxgen:v10.9.5 \
+     -t ghcr.io/cyclonedx/cdxgen:v11.6.0 \
      -r /app -o /app/bom.json --profile license-compliance -t npm -t python
    ```
 3. Generate the `grant` report:
