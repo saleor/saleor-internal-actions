@@ -26,4 +26,4 @@ jobs:
           sparse-checkout: ./sbom-generator
 
       - name: Run Tests
-        run: scripts/test-cdxgen-support.sh
+        run: scripts/test-cdxgen-support.sh --cdxgen-version 11.6.0
