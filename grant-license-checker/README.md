@@ -4,16 +4,16 @@ An action that generates a report of licenses used by main and transient depende
 and checks for compliance issues using [grant](https://github.com/anchore/grant).
 
 <!-- TOC -->
-* [grant-license-checker](#grant-license-checker)
-  * [Example Output](#example-output)
-  * [Usage](#usage)
-    * [GitHub Action](#github-action)
-    * [Reusable GitHub Workflow](#reusable-github-workflow)
-      * [Note: Behavior for External Contributions](#note-behavior-for-external-contributions)
-    * [CLI](#cli)
-  * [Development](#development)
-    * [Project Structure](#project-structure)
-<!-- TOC -->
+
+- [grant-license-checker](#grant-license-checker)
+  - [Example Output](#example-output)
+  - [Usage](#usage)
+    - [GitHub Action](#github-action)
+    - [Reusable GitHub Workflow](#reusable-github-workflow)
+      - [Note: Behavior for External Contributions](#note-behavior-for-external-contributions)
+    - [CLI](#cli)
+  - [Development](#development) \* [Project Structure](#project-structure)
+  <!-- TOC -->
 
 ## Example Output
 
@@ -85,6 +85,7 @@ on:
       - "**/requirements*.txt"
       - "**/Pipfile.lock"
       - "**/poetry.lock"
+      - "**/uv.lock"
       # JS/TS Ecosystem
       - "**/package.json"
       - "**/pnpm-lock.yaml"
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Analyze Licenses
         id: analyze-licenses
@@ -175,7 +176,8 @@ When a pull request originates from a fork, the workflow will always fail with t
 2. Review the summary (where the link sent you at), e.g.:
 
    <div align=center><img alt="Screenshot showing a summary of licenses found in a PR" src="./_docs/assets/external_contribution_workflow_summary.jpg" width="700"/></div>
-    
+
+
 3. If the changes look good to you, then add the label "Licenses Reviewed" to the pull request (case-sensitive, create the label if it doesn't exist)
 4. Once labeled, the workflow will rerun and will succeed.
 
@@ -220,7 +222,7 @@ End to end example:
      --rm \
      -v "$(pwd):/app:rw" \
      --env FETCH_LICENSE=true \
-     -t ghcr.io/cyclonedx/cdxgen:v10.9.5 \
+     -t ghcr.io/cyclonedx/cdxgen:v11.6.0 \
      -r /app -o /app/bom.json --profile license-compliance -t npm -t python
    ```
 3. Generate the `grant` report:

@@ -13,21 +13,21 @@ def test_get_packages_grouped_by_license(grant_json_report):
     assert renderer.get_packages_grouped_by_license() == [
         # Should show <<missing>> for the root component as CycloneDX
         # doesn't fetch or detect the project's license.
-        ("<<missing>>", [GrantPackage(name="example-project", type="python")]),
         ("Apache-2.0", [GrantPackage(name="tzdata", type="python")]),
-        (
-            "BSD-3-Clause",
-            [
-                GrantPackage(name="asgiref", type="python"),
-                GrantPackage(name="Django", type="python"),
-            ],
-        ),
         (
             "0BSD",
             [
                 GrantPackage(name="asgiref", type="python"),
                 GrantPackage(name="Django", type="python"),
                 GrantPackage(name="sqlparse", type="python"),
+            ],
+        ),
+        (
+            "BSD-3-Clause",
+            [
+                GrantPackage(name="asgiref", type="python"),
+                GrantPackage(name="Django", type="python"),
+                GrantPackage(name="example-project", type="python"),
             ],
         ),
     ]

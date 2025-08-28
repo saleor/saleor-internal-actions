@@ -1,12 +1,12 @@
 {
   "report_id": "",
-  "timestamp": "2024-09-13T12:05:26+02:00",
+  "timestamp": "2025-08-27T15:41:52+02:00",
   "inputs": [
-    "../sample-sbom-v1.5.json"
+    "../sample-sbom-v1.6.json"
   ],
   "results": [
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -22,7 +22,7 @@
       },
       "package": {
         "name": "asgiref",
-        "version": "3.8.1",
+        "version": "3.9.1",
         "type": "python",
         "locations": []
       },
@@ -32,7 +32,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "BSD-3-Clause",
         "name": "BSD 3-Clause \"New\" or \"Revised\" License",
@@ -48,7 +48,7 @@
       },
       "package": {
         "name": "asgiref",
-        "version": "3.8.1",
+        "version": "3.9.1",
         "type": "python",
         "locations": []
       },
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -74,7 +74,7 @@
       },
       "package": {
         "name": "Django",
-        "version": "5.1.1",
+        "version": "5.2.5",
         "type": "python",
         "locations": []
       },
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "BSD-3-Clause",
         "name": "BSD 3-Clause \"New\" or \"Revised\" License",
@@ -100,7 +100,7 @@
       },
       "package": {
         "name": "Django",
-        "version": "5.1.1",
+        "version": "5.2.5",
         "type": "python",
         "locations": []
       },
@@ -110,7 +110,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "0BSD",
         "name": "BSD Zero Clause License",
@@ -126,7 +126,7 @@
       },
       "package": {
         "name": "sqlparse",
-        "version": "0.5.1",
+        "version": "0.5.3",
         "type": "python",
         "locations": []
       },
@@ -136,7 +136,7 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
         "spdx_expression": "Apache-2.0",
         "name": "Apache License 2.0",
@@ -152,7 +152,7 @@
       },
       "package": {
         "name": "tzdata",
-        "version": "2024.1",
+        "version": "2025.2",
         "type": "python",
         "locations": []
       },
@@ -162,16 +162,19 @@
       ]
     },
     {
-      "input": "../sample-sbom-v1.5.json",
+      "input": "../sample-sbom-v1.6.json",
       "license": {
-        "spdx_expression": "",
-        "name": "",
-        "locations": null,
-        "reference": "",
+        "spdx_expression": "BSD-3-Clause",
+        "name": "BSD 3-Clause \"New\" or \"Revised\" License",
+        "locations": [],
+        "reference": "https://spdx.org/licenses/BSD-3-Clause.html",
         "is_deprecated": false,
-        "license_id": "",
-        "see_also": null,
-        "is_osi_approved": false
+        "license_id": "BSD-3-Clause",
+        "see_also": [
+          "https://opensource.org/licenses/BSD-3-Clause",
+          "https://www.eclipse.org/org/documents/edl-v10.php"
+        ],
+        "is_osi_approved": true
       },
       "package": {
         "name": "example-project",
@@ -181,7 +184,7 @@
       },
       "passed": true,
       "reasons": [
-        "no license found"
+        "default-allow-all: license allowed by policy"
       ]
     }
   ]

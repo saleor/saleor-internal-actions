@@ -14,34 +14,36 @@ function log() {
 # Add extra logging if the runner was run with debug logging.
 test -z "${RUNNER_DEBUG+x}" || set -x
 
-grant_version="${GRANT_VERSION:-0.2.2}"
+grant_version="${GRANT_VERSION:-0.2.9}"
 
 sha256sums='
-cb5925f6a1d7a791261914f27ea300ab3e88fa18521c5fff1b88d573fa349092  grant_0.2.2_darwin_amd64.sbom
-9d65808b30107f46d4755e8840b756a2abbbc60110485cf44df1d5f76a1fe418  grant_0.2.2_darwin_amd64.tar.gz
-14d2e8fbe14f6699201822f1744056e6fce8dc6787eeeacebbd6c37b11c27bdb  grant_0.2.2_darwin_arm64.sbom
-a169e2bf5dd755b35d3a0d05f9228ef1c32706611a18c86730f162399536ad8d  grant_0.2.2_darwin_arm64.tar.gz
-5c2a2db8aeca438cda9fee3c1bd93c07f8cd923aae53c35b385f710525fbd083  grant_0.2.2_linux_amd64.deb
-e37fb1d23c23d567fd026fb245bd49e14ec57c3ed2fa62c51a167c1a96b34d33  grant_0.2.2_linux_amd64.rpm
-17f18dad481ca1f15c1baa7c2ad3d322b9a467b26af4d4c6fa3aef33a4b146d7  grant_0.2.2_linux_amd64.sbom
-5c61efc0cad3def981642386a8ad813fdc74ef5c6e42ded38ffe2c4df1bd9060  grant_0.2.2_linux_amd64.tar.gz
-2a39884630cf8d928947e21aca0a44b6ad0504337b349dc42d5378661875ec54  grant_0.2.2_linux_arm64.deb
-048bab95a2284fa2a8a124afe27ba64821641bf48c1cdf498068a86208feae74  grant_0.2.2_linux_arm64.rpm
-3e59bc00a54c6d99bec529e0fcc710d0b75edb8211ead0ff995b935be3fa433a  grant_0.2.2_linux_arm64.sbom
-2510d17bdc5a52e3a6332fd158c6a7b888f12f5e9f31b31d2222765b97330971  grant_0.2.2_linux_arm64.tar.gz'
+d8afd586bd393434ddc76e8c140870ea91df81e3904a875d750d0c4b805ec28a  grant_0.2.9_darwin_amd64.sbom
+d8bbc0d65d3e90fcaa416e3231f998701cdd087a06218e02d402df53688675e4  grant_0.2.9_darwin_amd64.tar.gz
+fa36151b076a421371d759b4d7c5ae21bc4bf92c5cb17a99453251856aa1cd44  grant_0.2.9_darwin_arm64.sbom
+65dca6b8784ef18464c3aa975f69419e98b34d346d7217ac86c66c42b1682dd9  grant_0.2.9_darwin_arm64.tar.gz
+26f1acc3db3038dd7e146aef43a7860752f90b9fc93f1ad39f31bff9e0406417  grant_0.2.9_linux_amd64.deb
+924241d4736ff1658cd015339f4badee8549b034ed7794c356a9dd77d7a4a661  grant_0.2.9_linux_amd64.rpm
+09abdd03a97432796552aa0f7c599be0beff1fbb3e3cbdfe778f785b71d815fd  grant_0.2.9_linux_amd64.sbom
+f63c300dfdc8c92a64b5a42263958ba3a03640b7a98fae1bc9dbda7b38d1597b  grant_0.2.9_linux_amd64.tar.gz
+9059530a87fd8238e52af8bcd547dc13e506e19d980d89f7ad689af25eb7e09f  grant_0.2.9_linux_arm64.deb
+c4e5266e528329e2b0e3c09995fad9332711982ad72b0aa205eded95199da701  grant_0.2.9_linux_arm64.rpm
+6e77edf07b5a62250ccc0153c6e73bf647a8f51ebbfd6b72053d9afddfdbf12f  grant_0.2.9_linux_arm64.sbom
+b7cb2ea682403ebb558decdc6f1e953ff8cb5ab8732b0d5bd6b072bc4fc72d37  grant_0.2.9_linux_arm64.tar.gz'
 
 kernel=$(uname -s)
 arch=$(uname -m)
 case "$arch" in
-    x86_64)
-        arch=amd64 ;;
-    # Debian returns 'aarch64', Darwin returns 'arm64'.
-    aarch64|arm64)
-        arch=arm64 ;;
-    *)
-        log "Unsupported machine architecture: %s"
-        exit 1
-        ;;
+x86_64)
+    arch=amd64
+    ;;
+# Debian returns 'aarch64', Darwin returns 'arm64'.
+aarch64 | arm64)
+    arch=arm64
+    ;;
+*)
+    log "Unsupported machine architecture: %s"
+    exit 1
+    ;;
 esac
 
 dl_filename="grant_${grant_version}_${kernel,,}_${arch}.tar.gz"

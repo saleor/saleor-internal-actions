@@ -10,7 +10,13 @@ function log() {
 }
 
 # Add extra logging if the runner was run with debug logging.
-test -z "${RUNNER_DEBUG+x}" || set -x
+if [[ -n "${RUNNER_DEBUG+x}" ]]; then
+    set -x
+
+    # Enable debug mode for cdxgen
+    # (docs: https://cyclonedx.github.io/cdxgen/#/ENV)
+    export CDXGEN_DEBUG_MODE=debug
+fi
 
 # User provided preferences:
 # - CONF_PROJECT_DIR: the path of the project to scan (relative or absolute).
@@ -24,6 +30,9 @@ cmd_args=(
     "--recurse"
     "--output=$CONF_RESULT_PATH"
     "--profile=license-compliance"
+    # Prevent unintended spec upgrades as it may break 'grant-summarize'
+    # if the new spec isn't supported yet.
+    "--spec-version=1.6"
     # Path to the source code to analyze
     "$CONF_PROJECT_DIR"
 )
@@ -31,7 +40,7 @@ cmd_args=(
 # Add project types into the 'cdxgen' command line argument list.
 read -d '' -r -a ecosystems < <(echo "$CONF_ECOSYSTEMS") || true
 for ecosystem in "${ecosystems[@]}"; do
-    cmd_args+=( "--type=$ecosystem" )
+    cmd_args+=("--type=$ecosystem")
 done
 
 # Generate the BOM.

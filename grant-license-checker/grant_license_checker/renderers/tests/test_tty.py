@@ -23,10 +23,9 @@ def test_get_tty_summary_without_package_list(grant_json_report):
     assert (
         output
         == """\
-\x1b[1m<<missing>>\x1b[0m: 1 package
 \x1b[1mApache-2.0\x1b[0m: 1 package
-\x1b[1mBSD-3-Clause\x1b[0m: 2 packages
-\x1b[1m0BSD\x1b[0m: 3 packages"""
+\x1b[1m0BSD\x1b[0m: 3 packages
+\x1b[1mBSD-3-Clause\x1b[0m: 3 packages"""
     )
 
 
@@ -44,14 +43,13 @@ def test_get_tty_summary_with_package_list(grant_json_report):
     assert (
         output
         == """\
-\x1b[1m<<missing>>\x1b[0m: 1 package
-└──example-project
 \x1b[1mApache-2.0\x1b[0m: 1 package
 └──tzdata
-\x1b[1mBSD-3-Clause\x1b[0m: 2 packages
+\x1b[1m0BSD\x1b[0m: 3 packages
 └──asgiref
 └──Django
-\x1b[1m0BSD\x1b[0m: 3 packages
+└──[1 more...]
+\x1b[1mBSD-3-Clause\x1b[0m: 3 packages
 └──asgiref
 └──Django
 └──[1 more...]"""

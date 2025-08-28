@@ -1,6 +1,8 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 # Script generating the fixtures: sample-sbom-vXX.json and sample-grant-report.json
 set -eu -o pipefail
+
+HERE=$(dirname "$(readlink -f "$0")")
 
 function log() {
     msg="$1"
@@ -9,8 +11,8 @@ function log() {
     printf "$msg\n" "$@" >&2
 }
 
-sample_project_dir=./sample-project
-cyclonedx_spec_version='1.5'
+sample_project_dir="$HERE"/sample-project
+cyclonedx_spec_version='1.6'
 
 # If the sample project exists, delete it.
 if [ -d "$sample_project_dir" ]; then
@@ -48,25 +50,30 @@ rules:
 EOF
 
 log "Generating Poetry.lock..."
-poetry lock --quiet
+docker run --rm -ti \
+    -v "$(pwd)":/src \
+    -w /src \
+    python:3.12-slim sh -euxc '
+pip install poetry
+poetry lock --quiet'
 
 log "Generating SBOM..."
 docker run --rm \
-   -v "$PWD":/app:rw \
-   --env FETCH_LICENSE=true \
-   -t ghcr.io/cyclonedx/cdxgen:v10.9.5 \
-   --recurse \
-   -o /app/bom.json \
-   --profile license-compliance \
-   --spec-version "$cyclonedx_spec_version" \
-   /app
+    -v "$PWD":/app:rw \
+    --env FETCH_LICENSE=true \
+    -t ghcr.io/cyclonedx/cdxgen:v11.6.0 \
+    --recurse \
+    -o /app/bom.json \
+    --profile license-compliance \
+    --spec-version "$cyclonedx_spec_version" \
+    /app
 
 # Make the SBOM human readable, and copy it into the fixtures.
 log "Adapting and copying SBOM..."
-jq . ./bom.json > ../sample-sbom-v"$cyclonedx_spec_version".json
+jq . ./bom.json >../sample-sbom-v"$cyclonedx_spec_version".json
 
 log "Generating grant JSON file..."
 grant check \
     -o json \
     --non-spdx \
-    ../sample-sbom-v"$cyclonedx_spec_version".json | jq . > ../sample-grant-report.json
+    ../sample-sbom-v"$cyclonedx_spec_version".json | jq . >../sample-grant-report.json

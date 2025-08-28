@@ -1,0 +1,29 @@
+name: "Tests: sbom-generator"
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - .github/workflows/test-sbom-generator.yaml
+      - ./sbom-generator/**
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/test-sbom-generator.yaml
+      - ./sbom-generator/**
+
+jobs:
+  main:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ./sbom-generator
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          sparse-checkout: ./sbom-generator
+
+      - name: Run Tests
+        run: scripts/test-cdxgen-support.sh --cdxgen-version 11.6.0
