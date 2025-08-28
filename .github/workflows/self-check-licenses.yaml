@@ -12,6 +12,7 @@ on:
       # Self
       - ".github/workflows/self-check-licenses.yaml"
       - ".github/workflows/run-license-check.yaml"
+      - ".github/workflows/run-generate-sbom-and-check-licenses.yaml"
       - "grant-license-checker/**"
       - "sbom-generator/**"
       # Python Ecosystem
