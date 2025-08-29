@@ -1,0 +1,281 @@
+# Builds and push a container image for ARM64 & AMD64 using native runners (no QEMU).
+name: Build and Push Container Image
+
+on:
+  workflow_call:
+    inputs:
+      checkout-ref:
+        type: string
+        required: true
+        description: >-
+          The project's branch, tag or SHA to checkout.
+      checkout-use-vault:
+        type: boolean
+        description: >-
+          Whether to use the vault to fetch repositories. May be needed when passing
+          'checkout-submodules' input.
+      checkout-submodules:
+        type: string
+        default: ""
+        description: >-
+          Whether to checkout submodules, refer to https://github.com/actions/checkout/
+      # ======================
+      # GitHub Runner Settings
+      # ======================
+      amd64-runner-image:
+        type: string
+        default: ubuntu-24.04
+        description: >-
+          The GitHub runner to use for x64 image building.
+          Can be a self-hosted runner, a custom, or GitHub-hosted runner
+          (list: https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+      arm64-runner-image:
+        type: string
+        default: ubuntu-24.04-arm
+        description: >-
+          The GitHub runner to use for aarch64 image building.
+          Can be a self-hosted runner, a custom, or GitHub-hosted runner
+          (list: https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+      # ==============
+      # Build Settings
+      # ==============
+      oci-full-repository:
+        type: string
+        required: true
+        description: >-
+          The repository name, must include the OCI repository hostname, and the repository.
+
+          Example VALID value:
+            oci.example.com/acme/my-project
+
+          Invalid:
+            - acme/my-project (missing hostname)
+            - oci.example.com (missing repository name)
+      tags:
+        type: string
+        required: true
+        description: >-
+          List of tags to use to publish the image (whitespace seperated), must include the hostname.
+
+          Example:
+            tags: |
+              oci.example.com/acme/my-project:v1.0.0
+              oci.example.com/acme/my-project:latest
+      build-args:
+        type: string
+        description: >-
+          List of `--build-arg` arguments to pass to the builder.
+
+          Example:
+            build-args: |
+              MY_ARG1=foo
+              MY_ARG2=bar
+      labels:
+        type: string
+        description: List of labels to add to the final image.
+      # ================
+      # Publish Settings
+      # ================
+      enable-ghcr:
+        type: boolean
+        description: >-
+          If enabled, it will push to GHCR (GitHub Container Repository).
+      enable-aws-ecr:
+        type: boolean
+        description: >-
+          If enabled, it will push to AWS ECR.
+
+          Requires the following settings:
+          - aws-ecr-role-to-assume (secret)
+          - aws-ecr-registries (secret)
+          - aws-ecr-region
+      aws-ecr-region:
+        type: string
+        description: >-
+          The AWS region where to push.
+
+    secrets:
+      checkout-vault-url:
+        description: >-
+          The URL to the vault to use to checkout the code; used for downloading
+          submodules. Refer to https://github.com/actions/checkout/.
+      checkout-vault-jwt:
+        description: >-
+          The JWT for unlocking the vault in order to checkout the code; used for downloading
+          submodules. Refer to https://github.com/actions/checkout/.
+      aws-ecr-role-to-assume:
+        description: >-
+          The IAM role ARN to assume (to push to ECR).
+      aws-ecr-registries:
+        description: >-
+          The list of AWS accounts associated with a AWS ECR registry.
+
+          Example:
+            aws-ecr-registries: "123456789012,998877665544"
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build (${{ matrix.runner-image }})
+    runs-on: ${{ matrix.runner-image }}
+
+    strategy:
+      matrix:
+        runner-image:
+          - ${{ inputs.amd64-runner-image }}
+          - ${{ inputs.arm64-runner-image }}
+
+    permissions:
+      id-token: write # Needed for AWS login
+      packages: write # Needed for GHCR login
+      contents: read
+
+    steps:
+      - id: get-token
+        name: Get Checkout Token
+        if: ${{ inputs.checkout-use-vault }}
+        env:
+          VAULT_URL: ${{ secrets.checkout-vault-url }}
+          VAULT_JWT: ${{ secrets.checkout-vault-jwt }}
+        run: |
+          token=$(
+            curl --request GET --url "$VAULT_URL" --header "Authorization: JWT $VAULT_JWT" | jq -r .token
+          )
+          echo "::add-mask::$token"
+          echo "token=${token}" >> "$GITHUB_OUTPUT"
+
+      # Clone the invoker's repository.
+      - name: Checkout Caller's Code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ inputs.checkout-ref }}
+          token: ${{ steps.get-token.outputs.token || github.token }}
+          submodules: ${{ inputs.checkout-submodules }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          install: true
+
+      - if: ${{ inputs.enable-aws-ecr }}
+        name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ secrets.aws-ecr-role-to-assume }}
+          aws-region: ${{ inputs.aws-ecr-region }}
+
+      - if: ${{ inputs.enable-aws-ecr }}
+        name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+        with:
+          registries: ${{ secrets.aws-ecr-registries }}
+
+      - if: ${{ inputs.enable-ghcr }}
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        id: build
+        with:
+          context: .
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # We set `push-by-digest=true` thus we cannot put any tag and thus we use
+          # the container repository name instead (ghcr.io/saleor/saleor)
+          # (we cannot push both by tags and by digest, only one or the other)
+          tags: ${{ inputs.oci-full-repository }}
+          labels: ${{ inputs.labels }}
+          build-args: ${{ inputs.build-args }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
+
+      - name: Export digest
+        env:
+          BUILD_DIGEST: ${{ steps.build.outputs.digest }}
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          mkdir -p "$RUNNER_TEMP"/digests
+          touch "$RUNNER_TEMP/digests/${BUILD_DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digests-${{ matrix.runner-image }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Merges all built platforms into a single manifest
+  merge-digests:
+    needs: build
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      id-token: write # Needed for AWS login
+      packages: write # Needed for GHCR login
+      contents: none
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          install: true
+
+      - if: ${{ inputs.enable-aws-ecr }}
+        name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ secrets.aws-ecr-role-to-assume }}
+          aws-region: ${{ inputs.aws-ecr-region }}
+
+      - if: ${{ inputs.enable-aws-ecr }}
+        name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+        with:
+          registries: ${{ secrets.aws-ecr-registries }}
+
+      - name: Download digests
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - if: ${{ inputs.enable-ghcr }}
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          REPO: ${{ inputs.oci-full-repository }}
+          IMAGE_TAGS: ${{ inputs.tags }}
+        run: |
+          set -u
+          buildx_args=( )
+
+          # Build a list of --tag=XXX based on the user-provided tag list (${{ inputs.tags }})
+          # NOTE: `read` will return 1 on EOF, hence the `|| true`
+          IFS=, read -r -a tag_list <<< "$IMAGE_TAGS" || true
+          for tag in "${tag_list[@]}"; do
+            buildx_args+=( --tag="$tag" )
+          done
+
+          # Build the list of digests to include inside the final image
+          for digest in *; do
+            buildx_args+=( "$REPO@sha256:$digest" )
+          done
+
+          echo "Creating image with args: ${buildx_args[*]}" >&2
+          docker buildx imagetools create "${buildx_args[@]}"
