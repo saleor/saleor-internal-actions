@@ -270,7 +270,7 @@ jobs:
           REPO: ${{ inputs.oci-full-repository }}
           IMAGE_TAGS: ${{ inputs.tags }}
         run: |
-          set -u
+          set -u -o pipefail
           buildx_args=( )
 
           # Build a list of --tag=XXX based on the user-provided tag list
