@@ -128,33 +128,6 @@ jobs:
           name: ${{ inputs.output_sbom_artifact_name }}
           path: .
 
-      # Prepends the dependency group to the dependency name
-      # (as: ".group" + "/" + ".name")
-      #
-      # This is needed due to a bug in Syft that leads 'grant' to not handle
-      # properly dependency groups (e.g., NPM's '@org/pkg-name').
-      #
-      # Example: the NPM package '@types/node' would be reported by 'grant' as
-      # having for name 'node' whereas 'node' and '@types/node` are two
-      # (totally) unrelated packages.
-      #
-      # Ticket: https://github.com/anchore/syft/issues/1202
-      - name: Prepend Dependency Group
-        run: |
-          test -z "${RUNNER_DEBUG+x}" || set -x
-          set -eu
-
-          # When .group is not blank, preprend .group into .name (using a slash (/))
-          jq '
-            (
-              .components[] | select ( .group != "" )
-            ) |= (
-              . + { name: (.group + "/" + .name) }
-            )
-          ' bom.json > fixed.bom.json
-
-          mv fixed.bom.json bom.json
-
       - id: license-analyzer-self
         if: ${{ inputs.is_same_repository }}
         name: Analyze Licenses
