@@ -28,8 +28,8 @@ Comparison against the legacy approach:
 | Metric                      | Legacy Approach                | This Workflow                                       |
 | --------------------------- | ------------------------------ | --------------------------------------------------- |
 | Runner Settings             | 1 runner, 4 cores, Linux, QEMU | 2 runners (parallel build), 2 cores, Linux, no QEMU |
-| Build duration (multi‑arch) | 40 to 60 minutes               | 2 + 2 minutes = 4 min                               |
-| Cost per build              | $0.64 to $0.96/build           | ~$0.032                                             |
+| Build duration (multi‑arch) | 40 to 60 minutes               | 2 minutes                                           |
+| Cost per build              | $0.64 to $0.96/build           | ~$0.032 (2 + 2 minutes, parallel build)             |
 | CI pipeline runtime         | 40~60 min                      | ~2 min                                              |
 
 ## Usage
