@@ -5,7 +5,7 @@
 > It is provided as is and may not fit your use-case, we do not provide support
 > for it and breaking changes may occur without notice.
 
-[./build-push-image-multi-platform.yaml](./build-push-image-multi-platform.yaml) is a
+[build-push-image-multi-platform.yaml](./build-push-image-multi-platform.yaml) is a
 reusable GitHub Workflow that builds and publishes container images for ARM64 and x64
 (AMD64) architectures.
 
@@ -42,11 +42,11 @@ Comparison against the legacy approach:
 
 **Checkout behavior:**
 
-| Input name            | Description                                                              | Type    | Default | Notes                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
-| `checkout-ref`        | Git reference (branch, tag or SHA) to checkout in the source repository. | string  | -       | Uses the defaults to the reference or SHA for the GitHub event (e.g., the commit that was pushed for `push` events.) |
-| `checkout-use-vault`  | Whether to use the vault to fetch repositories.                          | boolean | `false` | Only required when using git submodules that point to private repositories.                                          |
-| `checkout-submodules` | Whether to checkout git submodules.                                      | string  | `false` | Refer to the documentation for the `submodules` field in https://github.com/actions/checkout/.                       |
+| Input name            | Description                                                              | Type    | Default   | Notes                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------ | ------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `checkout-ref`        | Git reference (branch, tag or SHA) to checkout in the source repository. | string  | -         | Uses the defaults to the reference or SHA for the GitHub event (e.g., the commit that was pushed for `push` events.) |
+| `checkout-use-vault`  | Whether to use the vault to fetch repositories.                          | boolean | `false`   | Only required when using git submodules that point to private repositories.                                          |
+| `checkout-submodules` | Whether to checkout git submodules.                                      | string  | `"false"` | Refer to the documentation for the `submodules` field in https://github.com/actions/checkout/.                       |
 
 **GitHub Runner Settings:**
 
