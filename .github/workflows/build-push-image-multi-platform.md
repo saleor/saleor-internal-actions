@@ -35,7 +35,7 @@ Comparison against the legacy approach:
 ## Usage
 
 > [!NOTE]
-> The workflow always builds both architectures, the caller cannot an architecture
+> The workflow always builds both architectures, the caller cannot skip one
 > (e.g., **only** building ARM64 isn't supported).
 
 ### Inputs
@@ -47,6 +47,13 @@ Comparison against the legacy approach:
 | `checkout-ref`        | Git reference (branch, tag or SHA) to checkout in the source repository. | string  | -         | Uses the defaults to the reference or SHA for the GitHub event (e.g., the commit that was pushed for `push` events.) |
 | `checkout-use-vault`  | Whether to use the vault to fetch repositories.                          | boolean | `false`   | Only required when using git submodules that point to private repositories.                                          |
 | `checkout-submodules` | Whether to checkout git submodules.                                      | string  | `"false"` | Refer to the documentation for the `submodules` field in https://github.com/actions/checkout/.                       |
+
+Secrets (**only** required when passing `checkout-use-vault: true`):
+
+| Input name           | Description                                                                                     | Type   | Default | Notes                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------- | ------ | ------- | --------------------------------------------- |
+| `checkout-vault-url` | The URL to the vault to use to checkout the code; used for downloading submodules.              | string | -       | Only required when `checkout-use-vault: true` |
+| `checkout-vault-jwt` | The JWT for unlocking the vault in order to checkout the code; used for downloading submodules. | string | -       | Only required when `checkout-use-vault: true` |
 
 **GitHub Runner Settings:**
 
@@ -65,7 +72,7 @@ Comparison against the legacy approach:
 
 <details>
 
-<summary>Example usage for `tags` and `build-args`</summary>
+<summary>Example usage for <code>tags</code> and <code>build-args</code></summary>
 
 ```yaml
 # […]
