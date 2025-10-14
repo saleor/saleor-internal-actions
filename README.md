@@ -9,17 +9,16 @@ This is a collection of GitHub Actions created and used by Saleor internally.
 ## Actions
 
 | Name                                           | Description                                                       |
-|------------------------------------------------|-------------------------------------------------------------------|
+| ---------------------------------------------- | ----------------------------------------------------------------- |
 | [sbom-generator](sbom-generator)               | Generates a CycloneDX SBOM with license fetching enabled.         |
 | [grant-license-checker](grant-license-checker) | Generates a license usage report of a given SBOM using [`grant`]. |
 
-
 ## Reusable Workflows
 
-| Name                                                               | Description                                                                        |
-|--------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [run-license-check.yaml](.github/workflows/run-license-check.yaml) | Summarizes the list of licenses as a pull request comment (by generating an SBOM.) |
-
+| Name                                                                                           | Description                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [run-license-check.yaml](.github/workflows/run-license-check.yaml)                             | Summarizes the list of licenses as a pull request comment (by generating an SBOM.)                                                                                        |
+| [build-push-image-multi-platform.yaml](.github/workflows/build-push-image-multi-platform.yaml) | Blazing fast building for multi-arch OCI images (ARM64 and AMD64 only). See [documentation](/.github/workflows/build-push-image-multi-platform.md) for usage information. |
 
 ## Development
 
