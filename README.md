@@ -12,6 +12,7 @@ This is a collection of GitHub Actions created and used by Saleor internally.
 | ---------------------------------------------- | ----------------------------------------------------------------- |
 | [sbom-generator](sbom-generator)               | Generates a CycloneDX SBOM with license fetching enabled.         |
 | [grant-license-checker](grant-license-checker) | Generates a license usage report of a given SBOM using [`grant`]. |
+| [request-vault-token](request-vault-token)     | Requests a token from a given vault.                              |
 
 ## Reusable Workflows
 
