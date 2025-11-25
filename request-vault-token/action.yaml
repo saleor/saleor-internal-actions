@@ -22,7 +22,7 @@ runs:
         VAULT_JWT: ${{ inputs.vault-jwt }}
       run: |
         token=$(
-          curl --request GET --url "$VAULT_URL" --header "Authorization: JWT $VAULT_JWT" | jq -r .token
+          curl --request GET --silent --url "$VAULT_URL" --header "Authorization: JWT $VAULT_JWT" | jq -r .token
         )
         echo "::add-mask::$token"
         echo "token=${token}" >> "$GITHUB_OUTPUT"
