@@ -1,0 +1,28 @@
+name: request-vault-token
+description: Requests a token from a given vault.
+inputs:
+  vault-url:
+    description: "The URL to the vault to use."
+    required: true
+  vault-jwt:
+    description: "The JWT for unlocking the vault."
+    required: true
+outputs:
+  token:
+    description: "The token that was returned by the vault."
+    value: ${{ steps.get-token.outputs.token }}
+runs:
+  using: composite
+  steps:
+    - id: get-token
+      shell: bash
+      name: Get Token
+      env:
+        VAULT_URL: ${{ inputs.vault-url }}
+        VAULT_JWT: ${{ inputs.vault-jwt }}
+      run: |
+        token=$(
+          curl --request GET --silent --url "$VAULT_URL" --header "Authorization: JWT $VAULT_JWT" | jq -r .token
+        )
+        echo "::add-mask::$token"
+        echo "token=${token}" >> "$GITHUB_OUTPUT"
