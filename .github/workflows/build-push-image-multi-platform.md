@@ -64,11 +64,13 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 
 **Build Settings**:
 
-| Input name            | Description                                                                                                                    | Type   | Default | Notes                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------ | ------- | -------------------------------------------------------------------- |
-| `oci-full-repository` | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`. | string | –       | **Required** – the _target_ registry where the image will be pushed. |
-| `tags`                | Whitespace-separated list of tags to apply to the final image (e.g. `ghcr.io/org/img:latest ghcr.io/org/img:v1`).              | string | –       | **Required**.                                                        |
-| `build-args`          | List of `--build-arg` arguments to pass to the builder.                                                                        | string | -       | See example below.                                                   |
+| Input name            | Description                                                                                                                    | Type   | Default      | Notes                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------ | -------------------------------------------------------------------- |
+| `context-path`        | The path to use as the build context.                                                                                          | string | ./           |                                                                      |
+| `dockerfile-path`     | The path to the Dockerfile to build.                                                                                           | string | ./Dockerfile |                                                                      |
+| `oci-full-repository` | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`. | string | –            | **Required** – the _target_ registry where the image will be pushed. |
+| `tags`                | Whitespace-separated list of tags to apply to the final image (e.g. `ghcr.io/org/img:latest ghcr.io/org/img:v1`).              | string | –            | **Required**.                                                        |
+| `build-args`          | List of `--build-arg` arguments to pass to the builder.                                                                        | string | -            | See example below.                                                   |
 
 <details>
 
