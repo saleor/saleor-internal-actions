@@ -39,6 +39,23 @@ on:
       # ==============
       # Build Settings
       # ==============
+      context-path:
+        type: string
+        default: ./
+        description: >-
+          The directory that should be used as the context for the `docker build <context>`
+          command.
+      dockerfile-path:
+        type: string
+        default: ./Dockerfile
+        description: >-
+          The path to the Dockerfile to use (must be inside the context), equivalent
+          to `docker build -f ./my-path/Dockerfile ./`
+      docker-build-summary:
+        type: boolean
+        default: true
+        description: >-
+          Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)
       oci-full-repository:
         type: string
         required: true
@@ -186,8 +203,11 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         id: build
+        env:
+          DOCKER_BUILD_SUMMARY: ${{ inputs.docker-build-summary }}
         with:
-          context: .
+          context: ${{ inputs.context-path }}
+          file: ${{ inputs.dockerfile-path }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
