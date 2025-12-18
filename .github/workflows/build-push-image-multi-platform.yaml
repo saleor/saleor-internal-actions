@@ -51,6 +51,10 @@ on:
         description: >-
           The path to the Dockerfile to use (must be inside the context), equivalent
           to `docker build -f ./my-path/Dockerfile ./`
+      target:
+        type: string
+        description: >-
+          The Dockerfile's build stage to use (same as in `docker build --target <TARGET>`)
       docker-build-summary:
         type: boolean
         default: true
@@ -208,6 +212,7 @@ jobs:
         with:
           context: ${{ inputs.context-path }}
           file: ${{ inputs.dockerfile-path }}
+          target: ${{ inputs.target }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
