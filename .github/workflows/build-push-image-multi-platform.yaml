@@ -6,11 +6,14 @@ on:
     inputs:
       checkout-ref:
         type: string
-        required: true
+        default: ""
         description: >-
           The project's branch, tag or SHA to checkout.
+          Automatically determine the ref to checkout when omitted or blank,
+          typically defaults to the SHA of the event.
       checkout-use-vault:
         type: boolean
+        default: false
         description: >-
           Whether to use the vault to fetch repositories. May be needed when passing
           'checkout-submodules' input.
