@@ -78,7 +78,7 @@ on:
           Examples:
             - AWS ECR: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name
             - GHCR: ghcr.io/my-organization/my-repository-name
-            - Docker Hub: docker.io/my-organization/my-repository-name
+            - Docker Hub: docker.io/my-organization/my-repository-name (unsupported currently, no auth step)
       tags:
         type: string
         required: true
@@ -161,7 +161,7 @@ on:
           Examples:
             - AWS ECR: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name
             - GHCR: ghcr.io/my-organization/my-repository-name
-            - Docker Hub: docker.io/my-organization/my-repository-name
+            - Docker Hub: docker.io/my-organization/my-repository-name (unsupported currently, no auth step)
     outputs:
       digest:
         description: The manifest list's digest (e.g., 'sha256:7007b387ccd52bd42a050f2e8020e56e64622c9269bf7bbe257b326fe99daf19')
