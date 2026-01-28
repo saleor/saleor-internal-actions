@@ -74,6 +74,11 @@ on:
           Invalid:
             - acme/my-project (missing hostname)
             - oci.example.com (missing repository name)
+
+          Examples:
+            - AWS ECR: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name
+            - GHCR: ghcr.io/my-organization/my-repository-name
+            - Docker Hub: docker.io/my-organization/my-repository-name
       tags:
         type: string
         required: true
@@ -86,10 +91,11 @@ on:
               v1.0.0
               latest
 
-          Example with the registry:
+          You can also (optionally) provide the registry and repository name:
             tags: |
-              oci.example.com/acme/my-project:v1.0.0
-              oci.example.com/acme/my-project:latest
+              123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name:v1.0.0
+              ghcr.io/my-organization/my-repository-name:v1.0.0
+              docker.io/my-organization/my-repository-name:v1.0.0
       build-args:
         type: string
         description: >-
@@ -151,6 +157,11 @@ on:
           Invalid:
             - acme/my-project (missing hostname)
             - oci.example.com (missing repository name)
+
+          Examples:
+            - AWS ECR: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name
+            - GHCR: ghcr.io/my-organization/my-repository-name
+            - Docker Hub: docker.io/my-organization/my-repository-name
     outputs:
       digest:
         description: The manifest list's digest (e.g., 'sha256:7007b387ccd52bd42a050f2e8020e56e64622c9269bf7bbe257b326fe99daf19')
