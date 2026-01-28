@@ -65,7 +65,6 @@ on:
           Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)
       oci-full-repository:
         type: string
-        required: true
         description: >-
           The repository name, must include the OCI repository hostname, and the repository.
 
@@ -79,9 +78,15 @@ on:
         type: string
         required: true
         description: >-
-          List of tags to use to publish the image (whitespace seperated), must include the hostname.
+          List of tags to use to publish the image (newline or comma separated),
+          can include or omit the registry's hostname.
 
-          Example:
+          Example without the registry (will use the value from 'oci-full-repository'):
+            tags: |
+              v1.0.0
+              latest
+
+          Example with the registry:
             tags: |
               oci.example.com/acme/my-project:v1.0.0
               oci.example.com/acme/my-project:latest
@@ -136,6 +141,16 @@ on:
 
           Example:
             aws-ecr-registries: "123456789012,998877665544"
+      oci-full-repository:
+        description: >-
+          The repository name, must include the OCI repository hostname, and the repository.
+
+          Example VALID value:
+            oci.example.com/acme/my-project
+
+          Invalid:
+            - acme/my-project (missing hostname)
+            - oci.example.com (missing repository name)
     outputs:
       digest:
         description: The manifest list's digest (e.g., 'sha256:7007b387ccd52bd42a050f2e8020e56e64622c9269bf7bbe257b326fe99daf19')
@@ -160,6 +175,22 @@ jobs:
       contents: read
 
     steps:
+      - name: Validate Inputs
+        env:
+          INPUT_OCI_REPO: ${{ inputs.oci-full-repository }}
+          SECRET_OCI_REPO: ${{ secrets.oci-full-repository }}
+        run: |
+          set -u -o pipefail
+
+          if [[ -z "$INPUT_OCI_REPO" ]] && [[ -z "$SECRET_OCI_REPO" ]]; then
+            {
+              echo "Missing required input: oci-full-repository must be provided."
+              echo "For more information, refer to the documentation under" \
+                    ".github/workflows/build-push-image-multi-platform.md"
+            } >&2
+            exit 1
+          fi
+
       - id: get-token
         name: Get Checkout Token
         if: ${{ inputs.checkout-use-vault }}
@@ -222,7 +253,7 @@ jobs:
           # We set `push-by-digest=true` thus we cannot put any tag and thus we use
           # the container repository name instead (ghcr.io/saleor/saleor)
           # (we cannot push both by tags and by digest, only one or the other)
-          tags: ${{ inputs.oci-full-repository }}
+          tags: ${{ inputs.oci-full-repository || secrets.oci-full-repository }}
           labels: ${{ inputs.labels }}
           build-args: ${{ inputs.build-args }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
@@ -295,25 +326,35 @@ jobs:
         id: push-manifest
         working-directory: ${{ runner.temp }}/digests
         env:
-          REPO: ${{ inputs.oci-full-repository }}
+          REPO: ${{ inputs.oci-full-repository || secrets.oci-full-repository }}
           IMAGE_TAGS: ${{ inputs.tags }}
         run: |
           set -u -o pipefail
           buildx_args=( )
 
+          # Normalize comma-separated tag list into newline separated list
+          IMAGE_TAGS=$(echo "$IMAGE_TAGS" | tr ',' $'\n')
+
           # Build a list of --tag=XXX based on the user-provided tag list
-          # NOTE: `read` will return 1 on EOF, hence the `|| true`
-          IFS=, read -r -a tag_list <<< "$IMAGE_TAGS" || true
-          for tag in "${tag_list[@]}"; do
+          mapfile -t tag_list <<<"$IMAGE_TAGS"
+          for i in "${!tag_list[@]}"; do
+            tag="${tag_list[$i]}"
+
+            # If tag doesn't specify the OCI repo, then we add it
+            if [[ "$tag" != "$REPO"* ]]; then
+              tag="$REPO":"$tag"
+              tag_list[i]="$tag"
+            fi
+
             buildx_args+=( --tag="$tag" )
           done
 
           # Build the list of digests to include inside the final image
           for digest in *; do
+            echo "Creating image for digest: ${digest}" >&2
             buildx_args+=( "$REPO@sha256:$digest" )
           done
 
-          echo "Creating image with args: ${buildx_args[*]}" >&2
           docker buildx imagetools create "${buildx_args[@]}"
 
           # Retrieves the image's digest, useful for importing the image for example.
