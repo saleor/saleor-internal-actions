@@ -64,15 +64,15 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 
 **Build Settings**:
 
-| Input name             | Description                                                                                                                    | Type    | Default        | Notes                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------------- | -------------------------------------------------------------------- |
-| `context-path`         | The path to use as the build context.                                                                                          | string  | `./`           |                                                                      |
-| `dockerfile-path`      | The path to the Dockerfile to build.                                                                                           | string  | `./Dockerfile` |                                                                      |
-| `target`               | The build stage to use in the Dockerfile (same as `docker build --target <TARGET>`)                                            | string  | -              |                                                                      |
-| `docker-build-summary` | Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)                           | boolean | `true`         |                                                                      |
-| `oci-full-repository`  | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`. | string  | –              | **Required** – the _target_ registry where the image will be pushed. |
-| `tags`                 | Whitespace-separated list of tags to apply to the final image (e.g. `ghcr.io/org/img:latest ghcr.io/org/img:v1`).              | string  | –              | **Required**.                                                        |
-| `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                        | string  | -              | See example below.                                                   |
+| Input name             | Description                                                                                                                    | Type    | Default        | Notes                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `context-path`         | The path to use as the build context.                                                                                          | string  | `./`           |                                                                                                                      |
+| `dockerfile-path`      | The path to the Dockerfile to build.                                                                                           | string  | `./Dockerfile` |                                                                                                                      |
+| `target`               | The build stage to use in the Dockerfile (same as `docker build --target <TARGET>`)                                            | string  | -              |                                                                                                                      |
+| `docker-build-summary` | Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)                           | boolean | `true`         |                                                                                                                      |
+| `oci-full-repository`  | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`. | string  | –              | **Required** – the _target_ registry where the image will be pushed. Can be passed in the `with` or `secrets` block. |
+| `tags`                 | Comma or newline-separated list of tags to apply to the final image (e.g. `latest,v1,v1.0.1`).                                 | string  | –              | **Required**.                                                                                                        |
+| `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                        | string  | -              | See example below.                                                                                                   |
 
 <details>
 
@@ -82,9 +82,13 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 # […]
 uses: saleor/saleor-build-workflow/.github/workflows/build.yaml@main
 with:
-tags: |
-  oci.example.com/acme/my-project:v1.0.0
-  oci.example.com/acme/my-project:latest
+  oci-full-repository: oci.example.com/acme/my-project
+  tags: |
+    v1.0.0
+    latest
+# Uncomment if you want to use a secret instead
+# secrets:
+#   oci-full-repository: oci.example.com/acme/my-project
 build-args: |
   MY_ARG1=foo
   MY_ARG2=bar
@@ -133,8 +137,8 @@ jobs:
     with:
       oci-full-repository: "ghcr.io/saleor/saleor"
       tags: |
-        ghcr.io/saleor/saleor:latest
-        ghcr.io/saleor/saleor:1.2.4
+        latest
+        1.2.4
       enable-ghcr: true
 
   pytest:
@@ -169,8 +173,8 @@ jobs:
     with:
       oci-full-repository: "123456789012.dkr.ecr.us-east-1.amazonaws.com/saleor/saleor"
       tags: |
-        123456789012.dkr.ecr.us-east-1.amazonaws.com/saleor/saleor:latest
-        123456789012.dkr.ecr.us-east-1.amazonaws.com/saleor/saleor:1.0.0
+        latest
+        1.0.0
       enable-ghcr: false
       enable-aws-ecr: true
     secrets:
@@ -193,8 +197,8 @@ jobs:
     with:
       oci-full-repository: "ghcr.io/saleor/saleor"
       tags: |
-        ghcr.io/saleor/saleor:latest
-        ghcr.io/saleor/saleor:1.2.4
+        latest
+        1.2.4
       enable-ghcr: true
 ```
 
