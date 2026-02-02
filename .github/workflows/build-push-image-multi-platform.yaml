@@ -164,7 +164,7 @@ on:
             - Docker Hub: docker.io/my-organization/my-repository-name (unsupported currently, no auth step)
       build-secrets:
         description: |
-          A list of build secrets to securely mount inside the Dockerfile.
+          A list of build secrets to mount securely inside the Dockerfile.
           References:
             - https://docs.docker.com/build/building/secrets/
             - https://docs.docker.com/build/ci/github-actions/secrets/
