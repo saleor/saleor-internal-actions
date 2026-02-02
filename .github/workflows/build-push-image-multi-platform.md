@@ -74,6 +74,12 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 | `tags`                 | Comma or newline-separated list of tags to apply to the final image (e.g. `latest,v1,v1.0.1`).                                 | string  | –              | **Required**.                                                                                                        |
 | `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                        | string  | -              | See example below.                                                                                                   |
 
+Secrets:
+
+| Input name      | Description                                                                                                                            | Type   | Default |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
+| `build-secrets` | A list of build secrets to mount securely inside the Dockerfile, see [Passsing Secrets to Dockerfile](#passing-secrets-to-dockerfile). | string | -       |
+
 <details>
 
 <summary>Example usage for <code>tags</code> and <code>build-args</code></summary>
@@ -201,6 +207,74 @@ jobs:
         1.2.4
       enable-ghcr: true
 ```
+
+### Passing Secrets to Dockerfile
+
+If you need to pass secrets at build-time to the `Dockerfile` ([securely]), you should use
+the input `build-secrets`, for example:
+
+```yaml
+name: Deploy Main
+on:
+  push:
+
+jobs:
+  push-ghcr:
+    uses: saleor/saleor-build-workflow/.github/workflows/build.yaml@main
+    secrets:
+      build-secrets: |
+        MY_SECRET_1=${{ secrets.MY_VALUE_1 }}
+        MY_SECRET_2=${{ secrets.MY_VALUE_2 }}
+```
+
+Then, in the `Dockerfile`:
+
+```dockerfile
+# Exposing the secret `MY_SECRET_1` as an environment variable called `MY_TARGET_ENV_VAR`
+RUN --mount=type=secret,id=MY_SECRET_1,env=MY_TARGET_ENV_VAR \
+  ls -l
+
+# Or, exposing as a file instead of an environment variable:
+RUN --mount=type=secret,id=MY_AWS_CREDENTIALS \
+    AWS_SHARED_CREDENTIALS_FILE=/run/secrets/aws \
+    aws s3 cp ...
+```
+
+If you need a multi-line secret, then you should put it between double quotes:
+
+```yaml
+# […]
+jobs:
+  push-ghcr:
+    uses: saleor/saleor-build-workflow/.github/workflows/build.yaml@main
+    secrets:
+      build-secrets: |
+        MY_SECRET_1=${{ secrets.MY_VALUE_1 }}
+        "MY_MULTLINE_SECRET=line1
+        line2
+        line3"
+```
+
+You can quote double quotes using `""`, e.g.:
+
+```yaml
+# […]
+jobs:
+  push-ghcr:
+    uses: saleor/saleor-build-workflow/.github/workflows/build.yaml@main
+    secrets:
+      build-secrets: |
+        "MY_JSON_SECRET={
+          ""foo"": ""bar""
+        }"
+```
+
+For more information, refer to the following resources:
+
+- https://docs.docker.com/build/ci/github-actions/secrets/
+- https://docs.docker.com/build/building/secrets/
+
+[securely]: https://docs.docker.com/reference/build-checks/secrets-used-in-arg-or-env/
 
 ## Architecture
 

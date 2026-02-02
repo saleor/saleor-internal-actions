@@ -162,6 +162,12 @@ on:
             - AWS ECR: 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo/my-image-name
             - GHCR: ghcr.io/my-organization/my-repository-name
             - Docker Hub: docker.io/my-organization/my-repository-name (unsupported currently, no auth step)
+      build-secrets:
+        description: |
+          A list of build secrets to mount securely inside the Dockerfile.
+          References:
+            - https://docs.docker.com/build/building/secrets/
+            - https://docs.docker.com/build/ci/github-actions/secrets/
     outputs:
       digest:
         description: The manifest list's digest (e.g., 'sha256:7007b387ccd52bd42a050f2e8020e56e64622c9269bf7bbe257b326fe99daf19')
@@ -268,6 +274,7 @@ jobs:
           labels: ${{ inputs.labels }}
           build-args: ${{ inputs.build-args }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
+          secrets: ${{ secrets.build-secrets }}
 
       - name: Export digest
         env:
