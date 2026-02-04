@@ -1,0 +1,153 @@
+# Sends a templated notification to Slack using an incoming webhook.
+name: Notify Slack
+
+on:
+  workflow_call:
+    inputs:
+      custom_title:
+        type: string
+        default: ""
+        description: >-
+          Custom title for the notification. If provided, 'type' and 'ref' are not required.
+          Supports Slack markdown formatting.
+      type:
+        type: string
+        default: ""
+        description: >-
+          The type of slack notification to send. Used to select one of two pre-defined
+          message templates. Required if 'custom_title' is not provided.
+
+          Accepted values:
+            - 'build'
+            - 'deployment'
+      ref:
+        type: string
+        default: ""
+        description: >-
+          The git ref (branch, tag, or SHA) that used during build or deployment.
+          Required if 'custom_title' is not provided.
+      status:
+        type: string
+        required: true
+        description: >-
+          The outcome of the build or deployment workflow.
+          Also controls the colored sidebar of the message.
+      service:
+        type: string
+        default: ""
+        description: >-
+          The target service or environment (e.g., 'saleor-v320-sandbox-eu',
+          'saleor-master-staging', etc). Only used when type is 'deployment'.
+
+    secrets:
+      slack-webhook-url:
+        required: true
+        description: >-
+          A Slack incoming webhook URL.
+          Our "Cloud Depoyments" slack app webhook URLs can be found here:
+          https://api.slack.com/apps/A0A56MD0DHS/incoming-webhooks?
+          They need to be declared in your repo as a workflow secrets.
+
+    outputs:
+      ok:
+        description: Whether the request completed without errors.
+        value: ${{ jobs.notify.outputs.ok }}
+      response:
+        description: A JSON stringified version of the Slack API response.
+        value: ${{ jobs.notify.outputs.response }}
+
+permissions: {}
+
+jobs:
+  notify:
+    name: Send Slack notification
+    runs-on: ubuntu-24.04
+
+    outputs:
+      ok: ${{ steps.notify-slack.outputs.ok }}
+      response: ${{ steps.notify-slack.outputs.response }}
+
+    steps:
+      - name: Generate Slack message payload
+        id: generate-payload
+        env:
+          TITLE_OVERRIDE: ${{ inputs.custom_title }}
+          TYPE: ${{ inputs.type }}
+          REF: ${{ inputs.ref }}
+          STATUS: ${{ inputs.status }}
+          SERVICE: ${{ inputs.service }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          ACTOR: ${{ github.actor }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -ux
+
+          # sidebar color based on status
+          case "$STATUS" in
+            success)   COLOR="#2EB67D" ;; # green
+            failure)   COLOR="#E01E5A" ;; # red
+            *)         COLOR="#868686" ;; # grey
+          esac
+
+          REPO_LINK="<${REPO_URL}|${REPO_NAME}>"
+
+          if [[ -n "$TITLE_OVERRIDE" ]]; then
+            TITLE="${REPO_LINK} | ${TITLE_OVERRIDE}"
+          else
+            # validate required inputs when not using custom title
+            if [[ -z "$TYPE" || -z "$REF" ]]; then
+              echo "::error::'type' and 'ref' are required when 'title' is not provided."
+              exit 1
+            fi
+
+            case "$TYPE" in
+              build|deployment) ;;
+              *)
+                echo "::error::Invalid type '$TYPE'. Must be one of: build, deployment."
+                exit 1
+                ;;
+            esac
+
+            TITLE="${REPO_LINK} | Finished ${TYPE} of *${REF}*"
+
+            if [[ "$TYPE" == "deployment" ]]; then
+              if [[ -z "$SERVICE" ]]; then
+                echo "::error::'service' is required when type is 'deployment'."
+                exit 1
+              fi
+              TITLE+=" to *${SERVICE}*"
+            fi
+          fi
+
+          # Extract workflow filename from github.workflow_ref (e.g., "owner/repo/.github/workflows/test.yml@refs/heads/main")
+          WORKFLOW_PATH="${WORKFLOW_REF%%@*}"  # owner/repo/.github/workflows/test.yml
+          WORKFLOW_FILE="${WORKFLOW_PATH##*/}" # test.yml
+          WORKFLOW_URL="${REPO_URL}/actions/workflows/${WORKFLOW_FILE}"
+
+          BODY="Author: *${ACTOR}*
+          Workflow: <${WORKFLOW_URL}|${WORKFLOW}>
+          Status: *${STATUS}*
+          <${RUN_URL}|View run logs>"
+
+          PAYLOAD=$(jq -cn \
+            --arg title "$TITLE" \
+            --arg body "$BODY" \
+            --arg color "$COLOR" \
+            '{ attachments: [{ color: $color, blocks: [
+              { type: "section", text: { type: "mrkdwn", text: $title } },
+              { type: "section", text: { type: "mrkdwn", text: $body } }
+            ]}] }')
+
+          echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        id: notify-slack
+        uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
+        with:
+          webhook: ${{ secrets.slack-webhook-url }}
+          webhook-type: incoming-webhook
+          payload: ${{ steps.generate-payload.outputs.payload }}
+          errors: true # We want the workflow to be marked as failed if the notification step fails - otherwise we will be likely to overlook notifications aren't working.
