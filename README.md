@@ -20,6 +20,7 @@ This is a collection of GitHub Actions created and used by Saleor internally.
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [run-license-check.yaml](.github/workflows/run-license-check.yaml)                             | Summarizes the list of licenses as a pull request comment (by generating an SBOM.)                                                                                        |
 | [build-push-image-multi-platform.yaml](.github/workflows/build-push-image-multi-platform.yaml) | Blazing fast building for multi-arch OCI images (ARM64 and AMD64 only). See [documentation](/.github/workflows/build-push-image-multi-platform.md) for usage information. |
+| [notify-slack.yaml](.github/workflows/notify-slack.yaml)                                       | Sends templated Slack notifications via incoming webhooks. See [documentation](/.github/workflows/notify-slack.md) for usage information.                                 |
 
 ## Development
 
