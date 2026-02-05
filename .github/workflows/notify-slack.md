@@ -28,7 +28,7 @@ workflow run.
     > [View run logs]()
 
 2. When `type: deployment` is provided:
-    > [repo-name]() | Finished deployment of **{ref}** to **{service}**
+    > [repo-name]() | **{product}** | Finished deployment of **{ref}** to **{environment}**
     >
     > Author: **username**
     >
@@ -59,7 +59,8 @@ workflow run.
 | `type`     | The type of notification: `build` or `deployment`.                           | string | `""`    | Required if `custom_title` is not provided.             |
 | `ref`      | The git ref (branch, tag, or SHA) that was built or deployed.                | string | `""`    | Required if `custom_title` is not provided.             |
 | `status`   | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other). | string | -       | **Required**.                                    |
-| `service`  | The target service or environment (e.g., `saleor-v320-sandbox-eu`).          | string | `""`    | Required when `type` is `deployment`.            |
+| `product`  | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).         | string | `""`    | Required when `type` is `deployment`.            |
+| `environment` | The target environment (e.g., `prod`, `staging`, `v322-staging`).         | string | `""`    | Required when `type` is `deployment`.            |
 
 ### Secrets
 
@@ -110,7 +111,10 @@ name: Deploy
 on:
   workflow_dispatch:
     inputs:
-      service:
+      product:
+        required: true
+        type: string
+      environment:
         required: true
         type: string
 
@@ -127,7 +131,8 @@ jobs:
     with:
       type: deployment
       ref: ${{ github.ref_name }}
-      service: ${{ inputs.service }}
+      product: ${{ inputs.product }}
+      environment: ${{ inputs.environment }}
       status: ${{ needs.deploy.result }}
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

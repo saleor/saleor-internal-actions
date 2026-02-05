@@ -32,12 +32,18 @@ on:
         description: >-
           The outcome of the build or deployment workflow.
           Also controls the colored sidebar of the message.
-      service:
+      product:
         type: string
         default: ""
         description: >-
-          The target service or environment (e.g., 'saleor-v320-sandbox-eu',
-          'saleor-master-staging', etc). Only used when type is 'deployment'.
+          The product being deployed (e.g., 'keycloak', 'saleor-multitenant',
+          'cloud-api', 'dashboard'). Required when type is 'deployment'.
+      environment:
+        type: string
+        default: ""
+        description: >-
+          The target environment (e.g., 'prod', 'staging', 'v322-staging').
+          Required when type is 'deployment'.
 
     secrets:
       slack-webhook-url:
@@ -75,7 +81,8 @@ jobs:
           TYPE: ${{ inputs.type }}
           REF: ${{ inputs.ref }}
           STATUS: ${{ inputs.status }}
-          SERVICE: ${{ inputs.service }}
+          PRODUCT: ${{ inputs.product }}
+          ENVIRONMENT: ${{ inputs.environment }}
           REPO_NAME: ${{ github.event.repository.name }}
           ACTOR: ${{ github.actor }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -104,22 +111,21 @@ jobs:
             fi
 
             case "$TYPE" in
-              build|deployment) ;;
+              build)
+                TITLE="${REPO_LINK} | Finished build of *${REF}*"
+                ;;
+              deployment)
+                if [[ -z "$PRODUCT" || -z "$ENVIRONMENT" ]]; then
+                  echo "::error::'product' and 'environment' are required when type is 'deployment'."
+                  exit 1
+                fi
+                TITLE="${REPO_LINK} | *${PRODUCT}* | Finished deployment of *${REF}* to *${ENVIRONMENT}*"
+                ;;
               *)
                 echo "::error::Invalid type '$TYPE'. Must be one of: build, deployment."
                 exit 1
                 ;;
             esac
-
-            TITLE="${REPO_LINK} | Finished ${TYPE} of *${REF}*"
-
-            if [[ "$TYPE" == "deployment" ]]; then
-              if [[ -z "$SERVICE" ]]; then
-                echo "::error::'service' is required when type is 'deployment'."
-                exit 1
-              fi
-              TITLE+=" to *${SERVICE}*"
-            fi
           fi
 
           # Extract workflow filename from github.workflow_ref (e.g., "owner/repo/.github/workflows/test.yml@refs/heads/main")
