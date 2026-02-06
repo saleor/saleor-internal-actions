@@ -12,7 +12,7 @@ Saleor workflows.
 
 The message includes a colored sidebar based on status (green for success, red for
 failure, grey for other), and a body with the author, status, and a link to the
-workflow run.
+workflow run. Optionally, a Slack user group can be mentioned in the message.
 
 ### Message format - depends on the inputs:
 
@@ -49,6 +49,19 @@ workflow run.
     >
     > [View run logs]()
 
+4. When `mention_group_id` is provided:
+    > [repo-name]() | Finished build of **{ref}**
+    >
+    > Author: **username**
+    >
+    > Workflow: [workflow-name]()
+    >
+    > Status: **status**
+    >
+    > @team-name
+    >
+    > [View run logs]()
+
 ## Usage
 
 ### Inputs
@@ -61,6 +74,7 @@ workflow run.
 | `status`   | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other). | string | -       | **Required**.                                    |
 | `product`  | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).         | string | `""`    | Required when `type` is `deployment`.            |
 | `environment` | The target environment (e.g., `prod`, `staging`, `v322-staging`).         | string | `""`    | Required when `type` is `deployment`.            |
+| `mention_group_id` | Slack user group ID to mention.                                         | string | `""`    | If provided, the group will be @mentioned.       |
 
 ### Secrets
 
@@ -161,6 +175,37 @@ jobs:
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
+
+### Notification with group mention
+
+```yaml
+name: Build with team notification
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: make build
+
+  notify:
+    needs: build
+    if: ${{ always() }}
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      type: build
+      ref: ${{ github.ref_name }}
+      status: ${{ needs.build.result }}
+      mention_group_id: ${{ needs.build.result == 'failure' && 'S0123456789' || '' }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+> **Tip:** To find a Slack user group ID, right-click on a group mention in Slack
+> and select "Copy link". The ID is the part after `/subteam/` (e.g., `S0123456789`).
 
 [incoming webhook]: https://api.slack.com/messaging/webhooks
 [slackapi/slack-github-action]: https://github.com/slackapi/slack-github-action

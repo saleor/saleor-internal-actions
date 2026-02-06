@@ -24,7 +24,7 @@ on:
         type: string
         default: ""
         description: >-
-          The git ref (branch, tag, or SHA) that used during build or deployment.
+          The git ref (branch, tag, or SHA) used during build or deployment.
           Required if 'custom_title' is not provided.
       status:
         type: string
@@ -44,13 +44,20 @@ on:
         description: >-
           The target environment (e.g., 'prod', 'staging', 'v322-staging').
           Required when type is 'deployment'.
+      mention_group_id:
+        type: string
+        default: ""
+        description: >-
+          Slack user group ID to mention (e.g., 'S0123456789').
+          If provided, the group will be mentioned in the notification.
+          Find group IDs in Slack by right-clicking a group mention and copying the link.
 
     secrets:
       slack-webhook-url:
         required: true
         description: >-
           A Slack incoming webhook URL.
-          Our "Cloud Depoyments" slack app webhook URLs can be found here:
+          Our "Cloud Deployments" slack app webhook URLs can be found here:
           https://api.slack.com/apps/A0A56MD0DHS/incoming-webhooks?
           They need to be declared in your repo as a workflow secrets.
 
@@ -83,6 +90,7 @@ jobs:
           STATUS: ${{ inputs.status }}
           PRODUCT: ${{ inputs.product }}
           ENVIRONMENT: ${{ inputs.environment }}
+          MENTION_GROUP_ID: ${{ inputs.mention_group_id }}
           REPO_NAME: ${{ github.event.repository.name }}
           ACTOR: ${{ github.actor }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -135,8 +143,14 @@ jobs:
 
           BODY="Author: *${ACTOR}*
           Workflow: <${WORKFLOW_URL}|${WORKFLOW}>
-          Status: *${STATUS}*
-          <${RUN_URL}|View run logs>"
+          Status: *${STATUS}*"
+
+          # Add group mention if configured
+          if [[ -n "$MENTION_GROUP_ID" ]]; then
+            BODY+=$'\n'"<!subteam^${MENTION_GROUP_ID}>"
+          fi
+
+          BODY+=$'\n'"<${RUN_URL}|View run logs>"
 
           PAYLOAD=$(jq -cn \
             --arg title "$TITLE" \
