@@ -49,7 +49,14 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
     >
     > [View run logs]()
 
-4. When `mention_group_id` is provided:
+4. When `custom_body:` is provided (with any title option):
+    > [repo-name]() | {title}
+    >
+    > {your custom body}
+    >
+    > [View run logs]()
+
+5. When `mention_group_id` is provided:
     > [repo-name]() | Finished build of **{ref}**
     >
     > Author: **username**
@@ -69,6 +76,7 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 | Input name | Description                                                                  | Type   | Default | Notes                                            |
 | ---------- | ---------------------------------------------------------------------------- | ------ | ------- | ------------------------------------------------ |
 | `custom_title` | Custom title for the notification. Supports Slack mrkdwn.                | string | `""`    | If provided, `type` and `ref` are not required.  |
+| `custom_body` | Custom body for the notification. Supports Slack mrkdwn.                  | string | `""`    | Replaces default body. Mention + run logs link still appended. |
 | `type`     | The type of notification: `build` or `deployment`.                           | string | `""`    | Required if `custom_title` is not provided.             |
 | `ref`      | The git ref (branch, tag, or SHA) that was built or deployed.                | string | `""`    | Required if `custom_title` is not provided.             |
 | `status`   | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other). | string | -       | **Required**.                                    |
@@ -173,6 +181,31 @@ jobs:
     uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
     with:
       custom_title: "*Custom task* completed"
+      status: ${{ needs.task.result }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Custom body notification
+
+```yaml
+name: Custom Body Notification
+on:
+  workflow_dispatch:
+
+jobs:
+  task:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Doing something..."
+
+  notify:
+    needs: task
+    if: ${{ always() }}
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      custom_title: "Database migration"
+      custom_body: "Migrated *users* table\nAffected rows: *1,234*"
       status: ${{ needs.task.result }}
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

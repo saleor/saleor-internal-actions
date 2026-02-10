@@ -10,6 +10,13 @@ on:
         description: >-
           Custom title for the notification. If provided, 'type' and 'ref' are not required.
           Supports Slack markdown formatting.
+      custom_body:
+        type: string
+        default: ""
+        description: >-
+          Custom body for the notification. If provided, replaces the default body
+          (Author, Workflow, Status). The @mention and "View run logs" link are still
+          appended automatically. Supports Slack markdown formatting.
       type:
         type: string
         default: ""
@@ -58,7 +65,7 @@ on:
           Comma-separated list of statuses that trigger the @mention (e.g., 'failure',
           'failure,cancelled'). Set to 'always' to mention on every status.
           Only relevant when 'mention_group_id' is provided.
-          Typical statuses are: 'success', 'failure', 'cancelled', 'skipped' - but
+          Typical statuses are: 'success', 'failure', 'cancelled', 'skipped' - but 
           custom values are also accepted.
 
     secrets:
@@ -100,6 +107,7 @@ jobs:
         id: generate-payload
         env:
           TITLE_OVERRIDE: ${{ inputs.custom_title }}
+          BODY_OVERRIDE: ${{ inputs.custom_body }}
           TYPE: ${{ inputs.type }}
           REF: ${{ inputs.ref }}
           STATUS: ${{ inputs.status }}
@@ -186,9 +194,13 @@ jobs:
             fi
           fi
 
-          BODY="Author: *${ACTOR}*
+          if [[ -n "$BODY_OVERRIDE" ]]; then
+            BODY="$BODY_OVERRIDE"
+          else
+            BODY="Author: *${ACTOR}*
           Workflow: <${WORKFLOW_URL}|${WORKFLOW}>
           Status: *${STATUS}*"
+          fi
           if [[ "$SHOULD_MENTION" == true ]]; then
             BODY+=$'\n'"<!subteam^${MENTION_GROUP_ID}>"
           fi
