@@ -75,6 +75,7 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 | `product`  | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).         | string | `""`    | Required when `type` is `deployment`.            |
 | `environment` | The target environment (e.g., `prod`, `staging`, `v322-staging`).         | string | `""`    | Required when `type` is `deployment`.            |
 | `mention_group_id` | Slack user group ID to mention.                                         | string | `""`    | If provided, the group will be @mentioned.       |
+| `mention_on` | Comma-separated statuses that trigger the @mention. Custom values also accepted. | string | `"always"` | e.g., `failure` or `failure,cancelled`. |
 
 ### Secrets
 
@@ -177,7 +178,7 @@ jobs:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
-### Notification with group mention
+### Notification with group mention (on failure only)
 
 ```yaml
 name: Build with team notification
@@ -201,11 +202,12 @@ jobs:
       ref: ${{ github.ref_name }}
       status: ${{ needs.build.result }}
       mention_group_id: S0123456789
+      mention_on: failure
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
-### Notification with group mention (as secret)
+### Notification with group mention (secret, multiple statuses)
 
 If your repo stores the group ID as a secret instead of a variable:
 
@@ -230,6 +232,7 @@ jobs:
       type: build
       ref: ${{ github.ref_name }}
       status: ${{ needs.build.result }}
+      mention_on: failure,cancelled
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
       mention_group_id: ${{ secrets.SLACK_MENTION_GROUP_ID }}
