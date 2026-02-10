@@ -60,6 +60,12 @@ on:
           Our "Cloud Deployments" slack app webhook URLs can be found here:
           https://api.slack.com/apps/A0A56MD0DHS/incoming-webhooks?
           They need to be declared in your repo as a workflow secrets.
+      mention_group_id:
+        required: false
+        description: >-
+          Slack user group ID to mention (e.g., 'S0123456789').
+          Use this instead of the input when the group ID is stored as a repo secret.
+          If both the secret and input are provided, the secret takes precedence.
 
     outputs:
       ok:
@@ -90,7 +96,7 @@ jobs:
           STATUS: ${{ inputs.status }}
           PRODUCT: ${{ inputs.product }}
           ENVIRONMENT: ${{ inputs.environment }}
-          MENTION_GROUP_ID: ${{ inputs.mention_group_id }}
+          MENTION_GROUP_ID: ${{ secrets.mention_group_id || inputs.mention_group_id }}
           REPO_NAME: ${{ github.event.repository.name }}
           ACTOR: ${{ github.actor }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}

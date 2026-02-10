@@ -81,6 +81,7 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 | Secret name         | Description                     | Notes                                                                                                   |
 | ------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `slack-webhook-url` | A Slack incoming webhook URL.   | **Required**. Our "Cloud Deployments" app webhooks can be found [here][cloud-deployments-app-webhooks]. |
+| `mention_group_id`  | Slack user group ID to mention. | Use this instead of the input when the group ID is stored as a repo secret. Secret takes precedence over input. |
 
 ### Outputs
 
@@ -199,9 +200,39 @@ jobs:
       type: build
       ref: ${{ github.ref_name }}
       status: ${{ needs.build.result }}
-      mention_group_id: ${{ needs.build.result == 'failure' && 'S0123456789' || '' }}
+      mention_group_id: S0123456789
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Notification with group mention (as secret)
+
+If your repo stores the group ID as a secret instead of a variable:
+
+```yaml
+name: Build with team notification
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: make build
+
+  notify:
+    needs: build
+    if: ${{ always() }}
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      type: build
+      ref: ${{ github.ref_name }}
+      status: ${{ needs.build.result }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      mention_group_id: ${{ secrets.SLACK_MENTION_GROUP_ID }}
 ```
 
 > **Tip:** To find a Slack user group ID, right-click on a group mention in Slack
