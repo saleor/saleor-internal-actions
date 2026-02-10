@@ -10,6 +10,13 @@ on:
         description: >-
           Custom title for the notification. If provided, 'type' and 'ref' are not required.
           Supports Slack markdown formatting.
+      custom_body:
+        type: string
+        default: ""
+        description: >-
+          Custom body for the notification. If provided, replaces the default body
+          (Author, Workflow, Status). The @mention and "View run logs" link are still
+          appended automatically. Supports Slack markdown formatting.
       type:
         type: string
         default: ""
@@ -51,6 +58,15 @@ on:
           Slack user group ID to mention (e.g., 'S0123456789').
           If provided, the group will be mentioned in the notification.
           Find group IDs in Slack by right-clicking a group mention and copying the link.
+      mention_on:
+        type: string
+        default: "always"
+        description: >-
+          Comma-separated list of statuses that trigger the @mention (e.g., 'failure',
+          'failure,cancelled'). Set to 'always' to mention on every status.
+          Only relevant when 'mention_group_id' is provided.
+          Typical statuses are: 'success', 'failure', 'cancelled', 'skipped' - but 
+          custom values are also accepted.
 
     secrets:
       slack-webhook-url:
@@ -60,6 +76,12 @@ on:
           Our "Cloud Deployments" slack app webhook URLs can be found here:
           https://api.slack.com/apps/A0A56MD0DHS/incoming-webhooks?
           They need to be declared in your repo as a workflow secrets.
+      mention_group_id:
+        required: false
+        description: >-
+          Slack user group ID to mention (e.g., 'S0123456789').
+          Use this instead of the input when the group ID is stored as a repo secret.
+          If both the secret and input are provided, the secret takes precedence.
 
     outputs:
       ok:
@@ -85,12 +107,14 @@ jobs:
         id: generate-payload
         env:
           TITLE_OVERRIDE: ${{ inputs.custom_title }}
+          BODY_OVERRIDE: ${{ inputs.custom_body }}
           TYPE: ${{ inputs.type }}
           REF: ${{ inputs.ref }}
           STATUS: ${{ inputs.status }}
           PRODUCT: ${{ inputs.product }}
           ENVIRONMENT: ${{ inputs.environment }}
-          MENTION_GROUP_ID: ${{ inputs.mention_group_id }}
+          MENTION_GROUP_ID: ${{ secrets.mention_group_id || inputs.mention_group_id }}
+          MENTION_ON: ${{ inputs.mention_on }}
           REPO_NAME: ${{ github.event.repository.name }}
           ACTOR: ${{ github.actor }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -100,19 +124,26 @@ jobs:
         run: |
           set -ux
 
-          # sidebar color based on status
+          # select sidebar color
           case "$STATUS" in
             success)   COLOR="#2EB67D" ;; # green
             failure)   COLOR="#E01E5A" ;; # red
             *)         COLOR="#868686" ;; # grey
           esac
 
+          # used in every title
           REPO_LINK="<${REPO_URL}|${REPO_NAME}>"
 
+          # used in every body
+          WORKFLOW_PATH="${WORKFLOW_REF%%@*}"  # owner/repo/.github/workflows/test.yml
+          WORKFLOW_FILE="${WORKFLOW_PATH##*/}" # test.yml
+          WORKFLOW_URL="${REPO_URL}/actions/workflows/${WORKFLOW_FILE}"
+
+          # use custom title (if provided) - otherwise select one of two predefined
+          # title templates. Includes input validation.
           if [[ -n "$TITLE_OVERRIDE" ]]; then
             TITLE="${REPO_LINK} | ${TITLE_OVERRIDE}"
           else
-            # validate required inputs when not using custom title
             if [[ -z "$TYPE" || -z "$REF" ]]; then
               echo "::error::'type' and 'ref' are required when 'title' is not provided."
               exit 1
@@ -136,20 +167,43 @@ jobs:
             esac
           fi
 
-          # Extract workflow filename from github.workflow_ref (e.g., "owner/repo/.github/workflows/test.yml@refs/heads/main")
-          WORKFLOW_PATH="${WORKFLOW_REF%%@*}"  # owner/repo/.github/workflows/test.yml
-          WORKFLOW_FILE="${WORKFLOW_PATH##*/}" # test.yml
-          WORKFLOW_URL="${REPO_URL}/actions/workflows/${WORKFLOW_FILE}"
-
-          BODY="Author: *${ACTOR}*
-          Workflow: <${WORKFLOW_URL}|${WORKFLOW}>
-          Status: *${STATUS}*"
-
-          # Add group mention if configured
+          # Decide if @mention should be included (depending on the workflow result)
+          SHOULD_MENTION=false
           if [[ -n "$MENTION_GROUP_ID" ]]; then
-            BODY+=$'\n'"<!subteam^${MENTION_GROUP_ID}>"
+            if [[ ! "$MENTION_GROUP_ID" =~ ^S[A-Z0-9]+$ ]]; then
+              echo "::error::Invalid mention_group_id '$MENTION_GROUP_ID'. Expected a Slack group ID (e.g., 'S0123456789')."
+              exit 1
+            fi
+            if [[ ! "$MENTION_ON" =~ ^[a-zA-Z,\ ]+$ ]]; then
+              echo "::error::Invalid mention_on value '$MENTION_ON'. Only letters, commas, and spaces are allowed."
+              exit 1
+            fi
+
+            if [[ "$MENTION_ON" == "always" ]]; then
+              SHOULD_MENTION=true
+            else
+              # Split "failure,cancelled" into an array on commas, then strip
+              # spaces from each entry and finally compare against current STATUS.
+              IFS=',' read -ra MENTION_STATUSES <<< "$MENTION_ON"
+              for s in "${MENTION_STATUSES[@]}"; do
+                if [[ "${s// /}" == "$STATUS" ]]; then
+                  SHOULD_MENTION=true
+                  break
+                fi
+              done
+            fi
           fi
 
+          if [[ -n "$BODY_OVERRIDE" ]]; then
+            BODY="$BODY_OVERRIDE"
+          else
+            BODY="Author: *${ACTOR}*
+          Workflow: <${WORKFLOW_URL}|${WORKFLOW}>
+          Status: *${STATUS}*"
+          fi
+          if [[ "$SHOULD_MENTION" == true ]]; then
+            BODY+=$'\n'"<!subteam^${MENTION_GROUP_ID}>"
+          fi
           BODY+=$'\n'"<${RUN_URL}|View run logs>"
 
           PAYLOAD=$(jq -cn \

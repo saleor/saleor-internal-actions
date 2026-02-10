@@ -49,7 +49,14 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
     >
     > [View run logs]()
 
-4. When `mention_group_id` is provided:
+4. When `custom_body:` is provided (with any title option):
+    > [repo-name]() | {title}
+    >
+    > {your custom body}
+    >
+    > [View run logs]()
+
+5. When `mention_group_id` is provided:
     > [repo-name]() | Finished build of **{ref}**
     >
     > Author: **username**
@@ -69,18 +76,21 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 | Input name | Description                                                                  | Type   | Default | Notes                                            |
 | ---------- | ---------------------------------------------------------------------------- | ------ | ------- | ------------------------------------------------ |
 | `custom_title` | Custom title for the notification. Supports Slack mrkdwn.                | string | `""`    | If provided, `type` and `ref` are not required.  |
+| `custom_body` | Custom body for the notification. Supports Slack mrkdwn.                  | string | `""`    | Replaces default body. Mention + run logs link still appended. |
 | `type`     | The type of notification: `build` or `deployment`.                           | string | `""`    | Required if `custom_title` is not provided.             |
 | `ref`      | The git ref (branch, tag, or SHA) that was built or deployed.                | string | `""`    | Required if `custom_title` is not provided.             |
 | `status`   | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other). | string | -       | **Required**.                                    |
 | `product`  | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).         | string | `""`    | Required when `type` is `deployment`.            |
 | `environment` | The target environment (e.g., `prod`, `staging`, `v322-staging`).         | string | `""`    | Required when `type` is `deployment`.            |
 | `mention_group_id` | Slack user group ID to mention.                                         | string | `""`    | If provided, the group will be @mentioned.       |
+| `mention_on` | Comma-separated statuses that trigger the @mention. Custom values also accepted. | string | `"always"` | e.g., `failure` or `failure,cancelled`. |
 
 ### Secrets
 
 | Secret name         | Description                     | Notes                                                                                                   |
 | ------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `slack-webhook-url` | A Slack incoming webhook URL.   | **Required**. Our "Cloud Deployments" app webhooks can be found [here][cloud-deployments-app-webhooks]. |
+| `mention_group_id`  | Slack user group ID to mention. | Use this instead of the input when the group ID is stored as a repo secret. Secret takes precedence over input. |
 
 ### Outputs
 
@@ -176,7 +186,32 @@ jobs:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
-### Notification with group mention
+### Custom body notification
+
+```yaml
+name: Custom Body Notification
+on:
+  workflow_dispatch:
+
+jobs:
+  task:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Doing something..."
+
+  notify:
+    needs: task
+    if: ${{ always() }}
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      custom_title: "Database migration"
+      custom_body: "Migrated *users* table\nAffected rows: *1,234*"
+      status: ${{ needs.task.result }}
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Notification with group mention (on failure only)
 
 ```yaml
 name: Build with team notification
@@ -199,9 +234,41 @@ jobs:
       type: build
       ref: ${{ github.ref_name }}
       status: ${{ needs.build.result }}
-      mention_group_id: ${{ needs.build.result == 'failure' && 'S0123456789' || '' }}
+      mention_group_id: S0123456789
+      mention_on: failure
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Notification with group mention (secret, multiple statuses)
+
+If your repo stores the group ID as a secret instead of a variable:
+
+```yaml
+name: Build with team notification
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: make build
+
+  notify:
+    needs: build
+    if: ${{ always() }}
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      type: build
+      ref: ${{ github.ref_name }}
+      status: ${{ needs.build.result }}
+      mention_on: failure,cancelled
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      mention_group_id: ${{ secrets.SLACK_MENTION_GROUP_ID }}
 ```
 
 > **Tip:** To find a Slack user group ID, right-click on a group mention in Slack
