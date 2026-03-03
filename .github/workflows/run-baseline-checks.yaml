@@ -1,0 +1,13 @@
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  lint-workflows-semgrep:
+    name: "Lint: GitHub Workflows (Semgrep)"
+    uses: saleor/semgrep-rules/.github/workflows/action-run-semgrep.yaml@feat/global-baseline
+
+    permissions:
+      # Needed for the workflow to be able to git-clone our organization semgrep rules.
+      contents: read
