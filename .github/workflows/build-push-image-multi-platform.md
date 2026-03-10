@@ -64,15 +64,20 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 
 **Build Settings**:
 
-| Input name             | Description                                                                                                                    | Type    | Default        | Notes                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `context-path`         | The path to use as the build context.                                                                                          | string  | `./`           |                                                                                                                      |
-| `dockerfile-path`      | The path to the Dockerfile to build.                                                                                           | string  | `./Dockerfile` |                                                                                                                      |
-| `target`               | The build stage to use in the Dockerfile (same as `docker build --target <TARGET>`)                                            | string  | -              |                                                                                                                      |
-| `docker-build-summary` | Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)                           | boolean | `true`         |                                                                                                                      |
-| `oci-full-repository`  | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`. | string  | –              | **Required** – the _target_ registry where the image will be pushed. Can be passed in the `with` or `secrets` block. |
-| `tags`                 | Comma or newline-separated list of tags to apply to the final image (e.g. `latest,v1,v1.0.1`).                                 | string  | –              | **Required**.                                                                                                        |
-| `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                        | string  | -              | See example below.                                                                                                   |
+| Input name             | Description                                                                                                                                                                                                                                                   | Type    | Default              | Notes                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `context-path`         | The path to use as the build context.                                                                                                                                                                                                                         | string  | `./`                 |                                                                                                                                                |
+| `dockerfile-path`      | The path to the Dockerfile to build.                                                                                                                                                                                                                          | string  | `./Dockerfile`       |                                                                                                                                                |
+| `target`               | The build stage to use in the Dockerfile (same as `docker build --target <TARGET>`)                                                                                                                                                                           | string  | -                    |                                                                                                                                                |
+| `docker-build-summary` | Whether to generate a build summary (https://docs.docker.com/build/ci/github-actions/build-summary/)                                                                                                                                                          | boolean | `true`               |                                                                                                                                                |
+| `oci-full-repository`  | Fully‑qualified OCI registry URI (including registry host, namespace and image name), e.g., `oci.example.com/acme/my-project`.                                                                                                                                | string  | –                    | **Required** – the _target_ registry where the image will be pushed. Can be passed in the `with` or `secrets` block.                           |
+| `tags`                 | Comma or newline-separated list of tags to apply to the final image (e.g. `latest,v1,v1.0.1`).                                                                                                                                                                | string  | –                    | **Required**.                                                                                                                                  |
+| `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                                                                                                                                                       | string  | -                    | See example below.                                                                                                                             |
+| `publish-environment`  | The [GitHub Environment] to use to build & push the image. This prevents unauthorized access to secrets by adding an additional protection layer. This also allows to add the `environment` claim to OIDC token which can then be checked by AWS for example. | string  | No environment used. | IMPORTANT: you must pass `secrets: inherit` if you use the `publish-environment` input.[^1] [^2] See our example: [Using GitHub Environments]. |
+
+[^1]: https://github.com/actions/runner/issues/3206
+
+[^2]: https://github.com/actions/runner/issues/1490
 
 Secrets:
 
@@ -275,6 +280,51 @@ For more information, refer to the following resources:
 - https://docs.docker.com/build/building/secrets/
 
 [securely]: https://docs.docker.com/reference/build-checks/secrets-used-in-arg-or-env/
+[Using GitHub Environments]: #using-github-environments
+
+### Using GitHub Environments
+
+Using environments you can restrict which branches or tags can access the secrets,
+and you can add additional deployment gates (such as requiring specific persons
+to approve the workflow's run).
+
+**Important:**
+
+- Due to a [GitHub limitation with reusable workflows secrets], secrets are
+  not available unless you inherit secrets from the caller workflow (`secrets: inherit`).
+- Our workflows expect secret names in lowercase with dashes
+  (e.g. `aws-ecr-role-to-assume`). However, GitHub environment secrets only support
+  `[A-Z_]+`, thus all secrets must be renamed when added to the environment:
+
+  `aws-ecr-role-to-assume` -> `AWS_ECR_ROLE_TO_ASSUME`
+
+  This applies and works with any secret used by our workflow.
+
+Example:
+
+```yaml
+on:
+  push: [main]
+
+jobs:
+  build-image:
+    uses: saleor/saleor-build-workflow/.github/workflows/build.yaml@main
+    with:
+      oci-full-repository: "123456789012.dkr.ecr.us-east-1.amazonaws.com/saleor/saleor"
+      enable-aws-ecr: true
+      publish-environment: my-publish-to-ecr-environment # <-- the GitHub environment name
+    secrets: inherit # <-- Important! Secrets will not work otherwise.
+```
+
+Setting a secret:
+
+<img
+  alt="Screenshot of GitHub Environment page showing protection rules and AWS_ECR_ROLE_TO_ASSUME secret"
+  width=550
+  src="https://github.com/user-attachments/assets/60f47e42-4329-46c9-bd40-d6864ef0de12"
+/>
+
+[GitHub limitation with reusable workflows secrets]: https://github.com/actions/runner/issues/1490
 
 ## Architecture
 
