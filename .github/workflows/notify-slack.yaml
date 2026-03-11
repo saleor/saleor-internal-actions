@@ -4,6 +4,10 @@ name: Notify Slack
 on:
   workflow_call:
     inputs:
+      github-environment:
+        type: string
+        required: false
+        description: The GitHub environment to use to access secrets.
       custom_title:
         type: string
         default: ""
@@ -46,6 +50,14 @@ on:
           The product being deployed (e.g., 'keycloak', 'saleor-multitenant',
           'cloud-api', 'dashboard'). Required when type is 'deployment'.
       environment:
+        type: string
+        default: ""
+        # Note: cannot deprecate directly in inputs (https://github.com/orgs/community/discussions/12564)
+        description: >-
+          [DEPRECATED use cloud-environment-name instead]
+          The target environment (e.g., 'prod', 'staging', 'v322-staging').
+          Required when type is 'deployment'.
+      cloud-environment-name:
         type: string
         default: ""
         description: >-
@@ -97,6 +109,7 @@ jobs:
   notify:
     name: Send Slack notification
     runs-on: ubuntu-24.04
+    environment: ${{ inputs.github-environment }}
 
     outputs:
       ok: ${{ steps.notify-slack.outputs.ok }}
@@ -112,8 +125,10 @@ jobs:
           REF: ${{ inputs.ref }}
           STATUS: ${{ inputs.status }}
           PRODUCT: ${{ inputs.product }}
-          ENVIRONMENT: ${{ inputs.environment }}
-          MENTION_GROUP_ID: ${{ secrets.mention_group_id || inputs.mention_group_id }}
+          ENVIRONMENT: ${{ inputs.environment || inputs.cloud-environment-name }}
+          # Input takes precedence over the secrets as the secret may be set
+          # but the user may not want to use it when using `secrets: inherit`.
+          MENTION_GROUP_ID: ${{ inputs.mention_group_id || secrets.mention_group_id || secrets.MENTION_GROUP_ID }}
           MENTION_ON: ${{ inputs.mention_on }}
           REPO_NAME: ${{ github.event.repository.name }}
           ACTOR: ${{ github.actor }}
@@ -221,7 +236,7 @@ jobs:
         id: notify-slack
         uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2.1.1
         with:
-          webhook: ${{ secrets.slack-webhook-url }}
+          webhook: ${{ secrets.slack-webhook-url || secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: ${{ steps.generate-payload.outputs.payload }}
           errors: true # We want the workflow to be marked as failed if the notification step fails - otherwise we will be likely to overlook notifications aren't working.

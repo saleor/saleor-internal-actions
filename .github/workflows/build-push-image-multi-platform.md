@@ -75,6 +75,8 @@ Secrets (**only** required when passing `checkout-use-vault: true`):
 | `build-args`           | List of `--build-arg` arguments to pass to the builder.                                                                                                                                                                                                       | string  | -                    | See example below.                                                                                                                             |
 | `publish-environment`  | The [GitHub Environment] to use to build & push the image. This prevents unauthorized access to secrets by adding an additional protection layer. This also allows to add the `environment` claim to OIDC token which can then be checked by AWS for example. | string  | No environment used. | IMPORTANT: you must pass `secrets: inherit` if you use the `publish-environment` input.[^1] [^2] See our example: [Using GitHub Environments]. |
 
+[GitHub Environment]: https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+
 [^1]: https://github.com/actions/runner/issues/3206
 
 [^2]: https://github.com/actions/runner/issues/1490
