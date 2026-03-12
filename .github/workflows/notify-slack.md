@@ -28,7 +28,7 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
     > [View run logs]()
 
 2. When `type: deployment` is provided:
-    > [repo-name]() | **{product}** | Finished deployment of **{ref}** to **{environment}**
+    > [repo-name]() | **{product}** | Finished deployment of **{ref}** to **{cloud-environment-name}**
     >
     > Author: **username**
     >
@@ -73,23 +73,30 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 
 ### Inputs
 
-| Input name | Description                                                                  | Type   | Default | Notes                                            |
-| ---------- | ---------------------------------------------------------------------------- | ------ | ------- | ------------------------------------------------ |
-| `custom_title` | Custom title for the notification. Supports Slack mrkdwn.                | string | `""`    | If provided, `type` and `ref` are not required.  |
-| `custom_body` | Custom body for the notification. Supports Slack mrkdwn.                  | string | `""`    | Replaces default body. Mention + run logs link still appended. |
-| `type`     | The type of notification: `build` or `deployment`.                           | string | `""`    | Required if `custom_title` is not provided.             |
-| `ref`      | The git ref (branch, tag, or SHA) that was built or deployed.                | string | `""`    | Required if `custom_title` is not provided.             |
-| `status`   | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other). | string | -       | **Required**.                                    |
-| `product`  | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).         | string | `""`    | Required when `type` is `deployment`.            |
-| `environment` | The target environment (e.g., `prod`, `staging`, `v322-staging`).         | string | `""`    | Required when `type` is `deployment`.            |
-| `mention_group_id` | Slack user group ID to mention.                                         | string | `""`    | If provided, the group will be @mentioned.       |
-| `mention_on` | Comma-separated statuses that trigger the @mention. Custom values also accepted. | string | `"always"` | e.g., `failure` or `failure,cancelled`. |
+| Input name               | Description                                                                                                                                       | Type   | Default              | Notes                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `github-environment`     | The [GitHub Environment] to use to build & push the image. This prevents unauthorized access to secrets by adding an additional protection layer. | string | No environment used. | `secrets: inherit` must be provided due to limitations with GitHub [^1]. Refer to [Using GitHub Environments] for more info. |
+| `custom_title`           | Custom title for the notification. Supports Slack markdown.                                                                                       | string | `""`                 | If provided, `type` and `ref` are not required.                                                                              |
+| `custom_body`            | Custom body for the notification. Supports Slack markdown.                                                                                        | string | `""`                 | Replaces default body. Mention + run logs link still appended.                                                               |
+| `type`                   | The type of notification: `build` or `deployment`.                                                                                                | string | `""`                 | Required if `custom_title` is not provided.                                                                                  |
+| `ref`                    | The git ref (branch, tag, or SHA) that was built or deployed.                                                                                     | string | `""`                 | Required if `custom_title` is not provided.                                                                                  |
+| `status`                 | The outcome of the workflow. Controls sidebar color (green=success, red=failure, grey=other).                                                     | string | -                    | **Required**.                                                                                                                |
+| `product`                | The product being deployed (e.g., `keycloak`, `saleor-multitenant`).                                                                              | string | `""`                 | Required when `type` is `deployment`.                                                                                        |
+| `cloud-environment-name` | The target environment (e.g., `prod`, `staging`, `v322-staging`).                                                                                 | string | `""`                 | Required when `type` is `deployment`.                                                                                        |
+| `mention_group_id`       | Slack user group ID to mention.                                                                                                                   | string | `""`                 | If provided, the group will be @mentioned.                                                                                   |
+| `mention_on`             | Comma-separated statuses that trigger the @mention. Custom values also accepted.                                                                  | string | `"always"`           | e.g., `failure` or `failure,cancelled`.                                                                                      |
+
+[GitHub Environment]: https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+
+[^1]: https://github.com/actions/runner/issues/1490
+
+[Secrets]: #secrets
 
 ### Secrets
 
-| Secret name         | Description                     | Notes                                                                                                   |
-| ------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `slack-webhook-url` | A Slack incoming webhook URL.   | **Required**. Our "Cloud Deployments" app webhooks can be found [here][cloud-deployments-app-webhooks]. |
+| Secret name         | Description                     | Notes                                                                                                           |
+| ------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `slack-webhook-url` | A Slack incoming webhook URL.   | **Required**. Our "Cloud Deployments" app webhooks can be found [here][cloud-deployments-app-webhooks].         |
 | `mention_group_id`  | Slack user group ID to mention. | Use this instead of the input when the group ID is stored as a repo secret. Secret takes precedence over input. |
 
 ### Outputs
@@ -98,6 +105,28 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 | ----------- | ----------------------------------------------------- |
 | `ok`        | Whether the request completed without errors.         |
 | `response`  | A JSON stringified version of the Slack API response. |
+
+[Using GitHub Environments]: #using-github-environments
+
+## Using GitHub Environments
+
+Due to limitations with GitHub, you need to provide `secrets: inherit`. When
+using [Secrets], you must switch the secret names from `[a-z-]+` syntax to
+`[A-Z_]+`. For example: `slack-webhook-url` -> `SLACK_WEBHOOK_URL`.
+
+Example valid workflow:
+
+```yaml
+on:
+  push: [main]
+
+jobs:
+  notify:
+    uses: saleor/saleor-internal-actions/.github/workflows/notify-slack.yaml@main
+    with:
+      github-environment: my-github-environment # <-- replace this with the env's name you created
+    secrets: inherit # <-- Important (only if you want to pass secrets)
+```
 
 ## Examples
 
@@ -138,7 +167,7 @@ on:
       product:
         required: true
         type: string
-      environment:
+      cloud-environment-name:
         required: true
         type: string
 
@@ -156,7 +185,7 @@ jobs:
       type: deployment
       ref: ${{ github.ref_name }}
       product: ${{ inputs.product }}
-      environment: ${{ inputs.environment }}
+      cloud-environment-name: ${{ inputs.cloud-environment-name }}
       status: ${{ needs.deploy.result }}
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
