@@ -17,61 +17,57 @@ workflow run. Optionally, a Slack user group can be mentioned in the message.
 ### Message format - depends on the inputs:
 
 1. When `type: build` is provided:
-
-   > [repo-name]() | Finished build of **{ref}**
-   >
-   > Author: **username**
-   >
-   > Workflow: [workflow-name]()
-   >
-   > Status: **status**
-   >
-   > [View run logs]()
+    > [repo-name]() | Finished build of **{ref}**
+    >
+    > Author: **username**
+    >
+    > Workflow: [workflow-name]()
+    >
+    > Status: **status**
+    >
+    > [View run logs]()
 
 2. When `type: deployment` is provided:
-
-   > [repo-name]() | **{product}** | Finished deployment of **{ref}** to **{cloud-environment-name}**
-   >
-   > Author: **username**
-   >
-   > Workflow: [workflow-name]()
-   >
-   > Status: **status**
-   >
-   > [View run logs]()
+    > [repo-name]() | **{product}** | Finished deployment of **{ref}** to **{cloud-environment-name}**
+    >
+    > Author: **username**
+    >
+    > Workflow: [workflow-name]()
+    >
+    > Status: **status**
+    >
+    > [View run logs]()
 
 3. When `custom_title:` is provided:
-
-   > [repo-name]() | {your custom title}
-   >
-   > Author: **username**
-   >
-   > Workflow: [workflow-name]()
-   >
-   > Status: **status**
-   >
-   > [View run logs]()
+    > [repo-name]() | {your custom title}
+    >
+    > Author: **username**
+    >
+    > Workflow: [workflow-name]()
+    >
+    > Status: **status**
+    >
+    > [View run logs]()
 
 4. When `custom_body:` is provided (with any title option):
-
-   > [repo-name]() | {title}
-   >
-   > {your custom body}
-   >
-   > [View run logs]()
+    > [repo-name]() | {title}
+    >
+    > {your custom body}
+    >
+    > [View run logs]()
 
 5. When `mention_group_id` is provided:
-   > [repo-name]() | Finished build of **{ref}**
-   >
-   > Author: **username**
-   >
-   > Workflow: [workflow-name]()
-   >
-   > Status: **status**
-   >
-   > @team-name
-   >
-   > [View run logs]()
+    > [repo-name]() | Finished build of **{ref}**
+    >
+    > Author: **username**
+    >
+    > Workflow: [workflow-name]()
+    >
+    > Status: **status**
+    >
+    > @team-name
+    >
+    > [View run logs]()
 
 ## Usage
 
