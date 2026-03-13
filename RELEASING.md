@@ -23,6 +23,7 @@ To create a new release:
 7. Update the `v1` tag:
 
    ```
+   git tag -d v1 && git fetch origin tag v1 # resync local copy of v1
    git fetch --tags
    git checkout v1.0.1 # Use the version that you want to release
    git tag --force v1
