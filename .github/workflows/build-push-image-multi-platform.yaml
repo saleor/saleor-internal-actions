@@ -42,6 +42,13 @@ on:
       # ==============
       # Build Settings
       # ==============
+      use-gha-cache:
+        type: boolean
+        default: false
+        description: >-
+          Whether the build can be use GitHub Actions cache. Not recommended for privileged
+          workflows or workflows that have access to secrets due to risk of lateral movement
+          through cache poisoning attacks.
       context-path:
         type: string
         default: ./
@@ -272,8 +279,9 @@ jobs:
           file: ${{ inputs.dockerfile-path }}
           target: ${{ inputs.target }}
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: ${{ inputs.use-gha-cache && 'type=gha' || null }}
+          cache-to: ${{ inputs.use-gha-cache && 'type=gha,mode=max' || null }}
+          no-cache: ${{ ! inputs.use-gha-cache }}
           # We set `push-by-digest=true` thus we cannot put any tag and thus we use
           # the container repository name instead (ghcr.io/saleor/saleor)
           # (we cannot push both by tags and by digest, only one or the other)
