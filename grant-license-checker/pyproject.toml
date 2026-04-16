@@ -1,25 +1,40 @@
-[tool.poetry]
+[project]
 name = "grant-license-checker"
-version = "0.1.0"
+version = "0.2.0"
 description = "Generates a report of licenses used by main and transient dependencies, and checks for compliance issues."
-authors = ["Saleor Commerce <hello@saleor.io>"]
+authors = [
+    { name = "Saleor Commerce", email = "hello@saleor.io>" }
+]
 license = "BSD-3-Clause"
 readme = "README.md"
+requires-python = ">3.12"
+dependencies = [
+    "jinja2>=3.1.5,<4",
+    "pydantic>=2.8.2,<3",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 grant-summarize = "grant_license_checker.cmd.grant_summarize:main"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-jinja2 = "^3.1.5"
-pydantic = "^2.8.2"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3,<9",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+# Note: uv_build version constraints must match the uv version, e.g., if you have
+#       'uv==0.11.3' installed but you put 'uv_build>=0.10.0,<0.11.0' then the
+#       version will mismatch (which will prevent uv from installing a "compatible"
+#       uv_build version).
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+exclude-newer = "3 weeks"
+
+[tool.uv.exclude-newer-package]
+# To customize on a per-package basis, for example you can do this:
+# django = "2026-04-07T14:30:00Z"
 
 [tool.coverage.run]
 omit = [

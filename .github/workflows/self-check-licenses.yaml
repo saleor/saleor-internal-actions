@@ -21,6 +21,7 @@ on:
       - "**/requirements*.txt"
       - "**/Pipfile.lock"
       - "**/poetry.lock"
+      - "**/uv.lock"
       # JS/TS Ecosystem
       - "**/package.json"
       - "**/pnpm-lock.yaml"
@@ -34,4 +35,3 @@ jobs:
     uses: ./.github/workflows/run-license-check.yaml
     with:
       is_same_repository: true
-
