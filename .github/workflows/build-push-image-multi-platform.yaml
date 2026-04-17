@@ -42,6 +42,19 @@ on:
       # ==============
       # Build Settings
       # ==============
+      buildx-version:
+        type: string
+        # Warning: this tag is mutable - there are no checksum or other integrity checks
+        #          as of yet in setup-buildx-action and GitHub releases are mutable
+        #          (https://github.com/docker/buildx/issues/3772)
+        default: "v0.33.0"
+        description: >-
+          The buildx version from https://github.com/docker/buildx/releases
+      buildkit-image:
+        type: string
+        default: "docker.io/moby/buildkit:v0.29.0@sha256:0039c1d47e8748b5afea56f4e85f14febaf34452bd99d9552d2daa82262b5cc5"
+        description: >-
+          The buildkit image to use (https://hub.docker.com/r/moby/buildkit)
       use-gha-cache:
         type: boolean
         default: false
@@ -246,7 +259,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         with:
+          cache-binary: ${{ inputs.use-gha-cache }}
           install: true
+          # https://docs.docker.com/build/ci/github-actions/configure-builder/#version-pinning
+          version: ${{ inputs.buildx-version }}
+          driver-opts: image=${{ inputs.buildkit-image }}
 
       - if: ${{ inputs.enable-aws-ecr }}
         name: Configure AWS Credentials
