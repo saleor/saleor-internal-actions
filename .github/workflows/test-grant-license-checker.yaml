@@ -17,7 +17,7 @@ permissions: {}
 
 jobs:
   main:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -35,17 +35,24 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          # Note: make sure to update `poetry env use pythonX.Y` below.
-          python-version: "3.12"
+          python-version-file: "./grant-license-checker/pyproject.toml"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        with:
+          # WARNING: remember to bump 'build-system' in ./pyproject.toml when changing
+          #          the uv version
+          version: "0.11.3"
+          working-directory: ./grant-license-checker
+          activate-environment: true
+          # hash for 'uv-x86_64-unknown-linux-gnu.tar.gz'
+          # (from https://github.com/astral-sh/uv/releases)
+          checksum: "c0f3236f146e55472663cfbcc9be3042a9f1092275bbe3fe2a56a6cbfd3da5ce"
 
       - name: Install Python Dependencies
-        shell: bash
         run: |
-          pip install poetry~=1.8.0
-          poetry env use python3.12
-          poetry install --with=dev
-          echo "$(poetry env info -p)"/bin >> "$GITHUB_PATH"
+          uv sync --locked --no-editable --link-mode=copy
 
       - name: pytest
         run: |
-          pytest ./
+          uv run pytest ./
