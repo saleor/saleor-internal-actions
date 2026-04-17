@@ -16,22 +16,9 @@ To create a new release:
    ```
 
 2. Commit the changes
-3. Create a tag:
-   ```
-   $ git tag -s -m v1.0.1 v1.0.1
-   $ git push --tags
-   ```
-4. Open a pull request with the 1) changes
-5. Once merged, update the v1.0.1 tag's commit SHA:
-   ```
-   $ git checkout main
-   $ git pull
-   $ git tag --force -s v1.0.1
-   $ git push origin --force refs/tags/v1.0.1
-   ```
-6. Create a release at https://github.com/saleor/saleor-internal-actions/releases/
+3. Open a pull request with the 1) changes
+4. Create a release at https://github.com/saleor/saleor-internal-actions/releases/
 
    ⚠️ Once you hit the publish button, you will no longer be able to mutate the tag.
-   Thus make sure you performed step 5) correctly.
 
 [Semantic Versioning]: https://semver.org/
