@@ -5,7 +5,16 @@
 
 To create a new release:
 
-1. Change the version numbers in `.github/workflows/run-generate-sbom-and-check-licenses.yaml` (e.g., `@v1.0.0` -> `@v1.0.1`)
+1. Change the version numbers for **every** action starting with the name
+   `saleor/saleor-internal-actions/` in `.github/workflows/run-generate-sbom-and-check-licenses.yaml`
+
+   For example:
+
+   ```diff
+   - @49a069ae9731cfccf3a1033fe1da4e3da84f4f2a # v1.11.0
+   + @166077722d8ab62468ac7def8a2b59594834ee04 # v1.12.0
+   ```
+
 2. Commit the changes
 3. Create a tag:
    ```
@@ -20,16 +29,7 @@ To create a new release:
    $ git tag --force -s v1.0.1
    $ git push origin --force refs/tags/v1.0.1
    ```
-7. Update the `v1` tag:
-
-   ```
-   git tag -d v1 && git fetch origin tag v1 # resync local copy of v1
-   git fetch --tags
-   git checkout v1.0.1 # Use the version that you want to release
-   git tag --force v1
-   git push origin --force refs/tags/v1
-   ```
-8. Create a release at https://github.com/saleor/saleor-internal-actions/releases/
+6. Create a release at https://github.com/saleor/saleor-internal-actions/releases/
 
    ⚠️ Once you hit the publish button, you will no longer be able to mutate the tag.
    Thus make sure you performed step 5) correctly.
