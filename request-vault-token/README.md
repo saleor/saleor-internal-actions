@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Get Token
         id: get-token
-        uses: saleor/saleor-internal-actions/request-vault-token@v1
+        uses: saleor/saleor-internal-actions/request-vault-token@v1.x.x
         with:
           # Provides required inputs
           vault-url: ${{ secrets.VAULT_URL }}

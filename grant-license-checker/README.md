@@ -103,7 +103,7 @@ jobs:
 
       - name: Analyze Licenses
         id: analyze-licenses
-        uses: saleor/saleor-internal-actions/grant-license-checker@v1
+        uses: saleor/saleor-internal-actions/grant-license-checker@v1.x.x
         with:
           # Needs to be a SBOM that contains license information (SPDX, CycloneDX,
           # and Syft formats are supported).
@@ -163,7 +163,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: saleor/saleor-internal-actions/.github/workflows/run-license-check.yaml@v1
+    uses: saleor/saleor-internal-actions/.github/workflows/run-license-check.yaml@v1.x.x
 ```
 
 #### Note: Behavior for External Contributions
@@ -176,7 +176,6 @@ When a pull request originates from a fork, the workflow will always fail with t
 2. Review the summary (where the link sent you at), e.g.:
 
    <div align=center><img alt="Screenshot showing a summary of licenses found in a PR" src="./_docs/assets/external_contribution_workflow_summary.jpg" width="700"/></div>
-
 
 3. If the changes look good to you, then add the label "Licenses Reviewed" to the pull request (case-sensitive, create the label if it doesn't exist)
 4. Once labeled, the workflow will rerun and will succeed.
