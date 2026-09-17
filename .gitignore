@@ -5,3 +5,6 @@ bom.json
 sbom.json
 
 __pycache__/
+
+node_modules/
+.pnpm-store/

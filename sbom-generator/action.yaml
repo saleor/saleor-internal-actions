@@ -2,11 +2,6 @@ name: grant-license-checker
 description: >-
   Generates a CycloneDX SBOM with license fetching enabled.
 inputs:
-  cdxgen_version:
-    default: "11.6.0"
-    description: >-
-      The cdxgen version to use to generate the CycloneDX SBOM.
-      List of available versions: https://github.com/CycloneDX/cdxgen/releases.
   sbom_path:
     default: "./sbom.json"
     description: >-
@@ -18,25 +13,38 @@ inputs:
   ecosystems:
     description: >-
       The project types to support, e.g., `python` or `javascript` (delimited by spaces or newlines).
-      
+
       List of supported values: https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES
       ("Project Types" column).
-      
+
       Default: scan all.
 runs:
   using: composite
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
-        node-version: 20
+        node-version: 26
+
+    - name: Install PNPM
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        corepack enable pnpm
+        corepack install
+
+    - uses: SocketDev/action@ba6de6cc0565af1f42295590380973573297e31f # v1.3.2
+      with:
+        use-cache: false # reduce risks with poisoned cache
+        mode: firewall-free
 
     - name: Install cdxgen
       shell: bash
-      env:
-        CONF_CDXGEN_VERSION: "${{ inputs.cdxgen_version }}"
+      working-directory: ${{ github.action_path }}
+      id: cdxgen-install
       run: |
-        npm install -g "@cyclonedx/cdxgen@$CONF_CDXGEN_VERSION"
+        sfw pnpm install
+        echo "bin=$(pnpm bin)"/cdxgen >> "$GITHUB_OUTPUT"
 
     - name: Generate SBOM
       shell: bash
@@ -44,5 +52,7 @@ runs:
         CONF_PROJECT_DIR: "${{ inputs.project_path }}"
         CONF_ECOSYSTEMS: "${{ inputs.ecosystems }}"
         CONF_RESULT_PATH: "${{ inputs.sbom_path }}"
+        # Where cdxgen is installed (binary path)
+        CDXGEN_BIN: ${{ steps.cdxgen-install.outputs.bin }}
       run: |
         "${GITHUB_ACTION_PATH}/scripts/generate-sbom.sh"

@@ -2,6 +2,8 @@
 
 set -eu -o pipefail
 
+CDXGEN_BIN=${CDXGEN_BIN:-cdxgen}
+
 function log() {
     msg="$1"
     shift
@@ -45,4 +47,4 @@ done
 
 # Generate the BOM.
 log "Generating SBOM..."
-FETCH_LICENSE=true cdxgen "${cmd_args[@]}"
+FETCH_LICENSE=true "$CDXGEN_BIN" "${cmd_args[@]}"

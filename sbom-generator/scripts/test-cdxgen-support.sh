@@ -77,9 +77,15 @@ parse_opts() {
   done
 
   if [[ -z "$cdxgen_version" ]]; then
-    error "Missing required option: --cdxgen-version"
-    usage
-    exit 1
+    # Automatically detect the cdxgen version to use if omitted
+    cdxgen_version=$(
+      jq -r '.dependencies["@cyclonedx/cdxgen"]' ../package.json |
+        grep -oE '[a-z0-9\.-]+' `# basic regex that greps anything that looks like a version (e.g., 1.2.3-rc0)`
+    )
+    if [[ -z "$cdxgen_version" ]]; then
+      error "FATAL: couldn't determine the cdxgen version to install."
+      exit 1
+    fi
   fi
 }
 
