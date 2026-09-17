@@ -1,0 +1,11 @@
+blockExoticSubdeps: true
+
+# Requires versions to be older than 21 days
+minimumReleaseAge: 30240 # in minutes
+
+# Requires installing versions only with provenance (published via CI, not npm token)
+# Allows installing "downgraded" deps, if they are older than 30 days
+# This happens if package releases a patch for older major version,
+# that might be missing release workflow which was added in future versions
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200 # 30 days (in minutes)
