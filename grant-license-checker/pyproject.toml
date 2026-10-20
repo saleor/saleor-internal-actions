@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">3.12"
 dependencies = [
     "jinja2>=3.1.5,<4",
-    "pydantic>=2.8.2,<3",
+    "pydantic>=2.14.0,<3",
 ]
 
 [project.scripts]
@@ -35,6 +35,9 @@ exclude-newer = "3 weeks"
 [tool.uv.exclude-newer-package]
 # To customize on a per-package basis, for example you can do this:
 # django = "2026-04-07T14:30:00Z"
+# pydantic-core only ships Python 3.15 wheels since 2.48.0, which pydantic pins from 2.14.0.
+pydantic = "2026-10-12T00:00:00Z"
+pydantic-core = "2026-10-12T00:00:00Z"
 
 [tool.coverage.run]
 omit = [
